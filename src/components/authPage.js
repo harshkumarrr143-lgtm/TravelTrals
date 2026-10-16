@@ -16,8 +16,8 @@ export function renderAuthPage() {
       <div class="auth-page-card">
         <!-- Brand Header -->
         <div class="auth-page-brand">
-          <img src="/site-icon.png" alt="TravelTales Icon" class="auth-brand-icon" />
-          <img src="/traveltales-logo.png" alt="TravelTales Logo" class="auth-brand-logo" />
+          <img src="./site-icon.png" alt="TravelTales Icon" class="auth-brand-icon" />
+          <img src="./traveltales-logo.png" alt="TravelTales Logo" class="auth-brand-logo" />
           <h2 class="auth-page-heading">
             ${authPageTab === 'login' ? 'Welcome Back, Traveler!' : 'Join TravelTales Today'}
           </h2>

@@ -18,7 +18,7 @@ export function renderHero() {
           playsinline
           preload="auto"
         >
-          <source src="/agra.mp4" type="video/mp4" />
+          <source src="./agra.mp4" type="video/mp4" />
         </video>
         <!-- Cinematic Gradient Overlay for text readability -->
         <div class="hero-screen-overlay"></div>

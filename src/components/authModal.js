@@ -23,8 +23,8 @@ export function renderAuthModal() {
         <div style="padding: 32px;">
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 24px;">
-            <img src="/site-icon.png" alt="TravelTales" style="width: 52px; height: 52px; border-radius: 50%; object-fit: contain; margin: 0 auto 10px auto; display: block; box-shadow: var(--shadow-sm); background: transparent;" />
-            <img src="/traveltales-logo.png" alt="TravelTales Logo" style="height: 36px; object-fit: contain; margin-bottom: 6px; background: transparent;" />
+            <img src="./site-icon.png" alt="TravelTales" style="width: 52px; height: 52px; border-radius: 50%; object-fit: contain; margin: 0 auto 10px auto; display: block; box-shadow: var(--shadow-sm); background: transparent;" />
+            <img src="./traveltales-logo.png" alt="TravelTales Logo" style="height: 36px; object-fit: contain; margin-bottom: 6px; background: transparent;" />
             <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
               ${activeAuthTab === 'login' ? 'Sign in to access your planned trips and passes.' : 'Create an account to book skip-the-line passes.'}
             </p>

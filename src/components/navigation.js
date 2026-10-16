@@ -10,7 +10,7 @@ export function renderSidebar(activeTab = 'dashboard', isCollapsed = false) {
       <!-- Sidebar Header Row with Brand & Panel Closer Button -->
       <div class="sidebar-header-row">
         <div class="sidebar-logo" onclick="window.navigateTo('dashboard')" title="TravelTales Home">
-          <img src="/traveltales-logo.png" alt="TravelTales" class="sidebar-logo-img" />
+          <img src="./traveltales-logo.png" alt="TravelTales" class="sidebar-logo-img" />
         </div>
 
         <button class="sidebar-closer-btn" id="sidebarCollapseBtn" onclick="window.toggleSidebarCollapse()" title="${isCollapsed ? 'Expand Menu Panel' : 'Close / Collapse Menu Panel'}">
