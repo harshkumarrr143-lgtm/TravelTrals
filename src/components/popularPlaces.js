@@ -52,13 +52,57 @@ export function renderPopularPlaces(filterCity = null) {
 
       <div class="section-header">
         <div class="section-title">
-          ${locationState.isAllowed ? `Nearby Attractions Near You <span>📍</span>` : `Popular Places <span>🌈</span>`}
+          ${locationState.isAllowed ? `Nearby Attractions Near You <span>📍</span>` : `Popular Destinations <span>🌈</span>`}
         </div>
         <div style="display: flex; gap: 14px; align-items: center;">
           <a class="section-see-all" onclick="window.navigateTo('discover')">See all</a>
         </div>
       </div>
 
+      <!-- Location Permission & Status Banner -->
+      ${!locationState.isAllowed ? `
+        <div class="location-prompt-card">
+          <div class="location-prompt-content">
+            <div class="location-prompt-icon">📍</div>
+            <div class="location-prompt-text">
+              <div class="location-prompt-title">Explore Attractions Near You</div>
+              <div class="location-prompt-desc">Allow location access to view heritage monuments and holy temples sorted by real-time distance from your current position.</div>
+            </div>
+          </div>
+          <div class="location-prompt-actions">
+            <button class="btn-location-allow" onclick="window.requestUserLocation()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/><polygon points="12 8 8 12 12 16 12 8"/>
+              </svg>
+              <span>Allow Location</span>
+            </button>
+            <div class="location-preset-dropdown">
+              <select onchange="window.selectPresetCity(this.value)" class="location-city-select" title="Or select a city directly">
+                <option value="" disabled selected>Or choose city...</option>
+                <option value="agra">📍 Agra (Taj Mahal area)</option>
+                <option value="mathura">📍 Mathura (Krishna Janmabhoomi)</option>
+                <option value="vrindavan">📍 Vrindavan (Prem Mandir)</option>
+                <option value="delhi">📍 Delhi / NCR</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div class="location-active-badge-bar">
+          <div class="location-active-info">
+            <span class="location-pulse-dot"></span>
+            <span><strong>Location Active:</strong> Showing ${attractions.length} attractions near <strong>${locationState.locationName || locationState.nearestCity || 'Your Location'}</strong> (sorted by nearest first)</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="location-refresh-btn" onclick="window.requestUserLocation()" title="Refresh your GPS location">
+              🔄 Update GPS
+            </button>
+            <button class="location-refresh-btn" onclick="window.resetUserLocation()" title="Reset to all destinations">
+              ✕ Reset
+            </button>
+          </div>
+        </div>
+      `}
 
       <div class="cards-grid" id="popularCardsGrid">
         ${attractions.map(att => {

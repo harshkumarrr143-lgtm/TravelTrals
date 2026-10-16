@@ -16,7 +16,7 @@ import { renderBookingModal, setBookingAttraction, triggerSuccessConfetti, updat
 import { renderAuthModal, setAuthModalState } from './components/authModal.js';
 import { renderAuthPage, setAuthPageTab } from './components/authPage.js';
 import { renderGoogleLoginModal } from './components/googleLoginModal.js';
-import { requestBrowserLocation, setPresetLocation } from './services/locationService.js';
+import { requestBrowserLocation, setPresetLocation, getLocationState, loadSavedLocation } from './services/locationService.js';
 import { renderUserProfile, setProfileTab } from './components/userProfile.js';
 import { renderTripPlanner, setPlannerTool, plannerState } from './components/tripPlanner.js';
 import { renderPresentationView, openPresentationForTrip, nextSlide, prevSlide } from './components/presentationView.js';
@@ -847,30 +847,52 @@ window.handlePageRegisterSubmit = async function(e) {
 };
 
 // --- Location-Based Attractions Handlers ---
-window.requestUserLocation = function() {
-  const btn = document.querySelector('.location-btn-primary') || document.querySelector('.location-btn-active');
-  if (btn) btn.innerHTML = '<span>Locating... 📍</span>';
+window.requestUserLocation = function(silent = false) {
+  const btn = document.querySelector('.btn-location-allow') || document.querySelector('.location-refresh-btn');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) btn.innerHTML = '<span>Locating your position... 📍</span>';
 
   requestBrowserLocation(
     (locState) => {
       renderApp();
       triggerSuccessConfetti();
+      showToast(`📍 Location detected: ${locState.nearestCity} area! Showing nearest attractions first.`, '🧭');
     },
     (errMsg) => {
-      showAlertModal({
-        title: 'Location Notice',
-        message: `${errMsg}\n\nYou can select a preset city (Agra, Mathura, Vrindavan) to view nearest attractions.`,
-        icon: '📍',
-        buttonText: 'Got It'
-      });
+      if (btn) btn.innerHTML = originalText;
+      if (!silent) {
+        showAlertModal({
+          title: 'Location Notice',
+          message: `${errMsg}\n\nYou can select a preset city (Agra, Mathura, Vrindavan) anytime from the dropdown to explore nearest attractions.`,
+          icon: '📍',
+          buttonText: 'Got It'
+        });
+      }
       renderApp();
     }
   );
 };
 
-window.selectPresetCity = function(cityId) {
-  setPresetLocation(cityId);
+window.resetUserLocation = function() {
+  localStorage.removeItem('traveltales_user_location');
+  const locState = getLocationState();
+  if (locState) {
+    locState.isAllowed = false;
+    locState.latitude = null;
+    locState.longitude = null;
+    locState.nearestCity = null;
+    locState.locationName = null;
+  }
   renderApp();
+  showToast('Location filter cleared. Showing all destinations.', 'ℹ️');
+};
+
+window.selectPresetCity = function(cityId) {
+  if (!cityId) return;
+  const locState = setPresetLocation(cityId);
+  renderApp();
+  triggerSuccessConfetti();
+  showToast(`📍 Showing attractions sorted from ${locState.locationName}!`, '✨');
 };
 
 window.handleLogout = async function() {
@@ -1863,15 +1885,38 @@ function initAppStartupSync() {
   }
 }
 
+// Automatic Location Prompt on Startup
+function initLocationOnStartup() {
+  const saved = loadSavedLocation();
+  if (saved && saved.isAllowed && saved.latitude) {
+    console.log('📍 Loaded saved user location:', saved.nearestCity);
+    return;
+  }
+
+  if (!navigator.geolocation) return;
+
+  // Ask for location on first visit or startup after a gentle delay
+  const hasAsked = sessionStorage.getItem('traveltales_location_prompted');
+  if (!hasAsked) {
+    sessionStorage.setItem('traveltales_location_prompted', 'true');
+    setTimeout(() => {
+      // Trigger browser location request so the user is prompted to Allow
+      window.requestUserLocation(true);
+    }, 1200);
+  }
+}
+
 // Initialize Application on DOM Ready or immediately if DOM is already parsed
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     renderApp();
     initAppStartupSync();
+    initLocationOnStartup();
   });
 } else {
   renderApp();
   initAppStartupSync();
+  initLocationOnStartup();
 }
 
 
