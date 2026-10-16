@@ -194,3 +194,24 @@ export async function deleteTripFromFirestore(tripId) {
   }
 }
 
+/**
+ * Synchronizes both user profile and all user trips from Firestore
+ * @param {string} userId
+ */
+export async function syncUserDataWithFirestore(userId) {
+  if (!userId) return null;
+  const db = getDb();
+  if (!db) return null;
+
+  try {
+    const [profile, trips] = await Promise.all([
+      getUserProfileFromFirestore(userId),
+      getUserTripsFromFirestore(userId)
+    ]);
+    return { profile, trips: trips || [] };
+  } catch (e) {
+    console.warn('Sync user data error:', e);
+    return null;
+  }
+}
+

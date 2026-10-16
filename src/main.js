@@ -2,8 +2,9 @@
 import './style.css';
 import gsap from 'gsap';
 import { travelData } from './data/travelData.js';
-import { storage } from './services/storageService.js';
+import { storage, getDeterministicUserId } from './services/storageService.js';
 import { saveFirebaseConfig } from './services/firebaseConfig.js';
+import { showAlertModal, showConfirmModal, showPromptModal } from './components/modalDialog.js';
 
 // Import UI Components
 import { renderSidebar, renderTopbar } from './components/navigation.js';
@@ -33,7 +34,8 @@ import {
   recordImageInFirestore,
   saveTripToFirestore,
   deleteTripFromFirestore,
-  getUserTripsFromFirestore
+  getUserTripsFromFirestore,
+  syncUserDataWithFirestore
 } from './services/firestoreService.js';
 
 // Application State
@@ -341,7 +343,12 @@ window.handleSearchClick = function() {
 };
 
 window.toggleFilterModal = function() {
-  window.alert('Filter options: Filter by Category (Heritage, Nature, Spiritual), Price tier (Free to $1080+), Duration, and Accessibility.');
+  showAlertModal({
+    title: 'Explore Filters & Categories',
+    message: 'Filter attractions by:\n• Categories: World Heritage, Sacred Temples, Spiritual Ghats\n• Price Tier: Free Entry, Guided Tours, Fast-Passes\n• Duration & Accessibility: Half-day, Full-day, Wheelchair friendly.',
+    icon: '🔍',
+    buttonText: 'Got It'
+  });
 };
 
 // Floating Feedback Toast
@@ -692,15 +699,25 @@ window.closeGoogleLoginModal = function() {
 
 window.handleCustomGoogleSubmit = async function(e) {
   e.preventDefault();
-  const email = document.getElementById('googleInputEmail')?.value;
-  const name = document.getElementById('googleInputName')?.value;
+  const email = document.getElementById('googleInputEmail')?.value?.trim();
+  const name = document.getElementById('googleInputName')?.value?.trim();
   if (!email) return;
 
   const user = storage.loginWithGoogle(email, name);
   
-  // Save user profile directly to Cloud Firestore
+  // Pull fresh cloud data from Firestore (profile, custom photo, trips)
   try {
-    await saveUserProfileToFirestore(user.id, user);
+    const cloudData = await syncUserDataWithFirestore(user.id);
+    if (cloudData) {
+      if (cloudData.profile) {
+        storage.updateProfile(cloudData.profile);
+      }
+      if (cloudData.trips && cloudData.trips.length > 0) {
+        storage.setTrips(cloudData.trips);
+      }
+    }
+    // Also sync current active user to Firestore
+    await saveUserProfileToFirestore(user.id, storage.getUser() || user);
   } catch (err) {
     console.warn('Firestore sync note:', err);
   }
@@ -718,10 +735,10 @@ window.handleGoogleLogin = function() {
 
 window.handleAuthSubmit = async function(e) {
   e.preventDefault();
-  const phone = document.getElementById('authPhone')?.value;
-  const email = document.getElementById('authEmail')?.value;
+  const phone = document.getElementById('authPhone')?.value?.trim();
+  const email = document.getElementById('authEmail')?.value?.trim();
   const pass = document.getElementById('authPassword')?.value || document.getElementById('authPhonePass')?.value;
-  const regName = document.getElementById('authRegName')?.value;
+  const regName = document.getElementById('authRegName')?.value?.trim();
 
   let user = null;
   if (regName) {
@@ -734,7 +751,12 @@ window.handleAuthSubmit = async function(e) {
 
   if (user) {
     try {
-      await saveUserProfileToFirestore(user.id, user);
+      const cloudData = await syncUserDataWithFirestore(user.id);
+      if (cloudData) {
+        if (cloudData.profile) storage.updateProfile(cloudData.profile);
+        if (cloudData.trips && cloudData.trips.length > 0) storage.setTrips(cloudData.trips);
+      }
+      await saveUserProfileToFirestore(user.id, storage.getUser() || user);
     } catch (err) {
       console.warn('Firestore sync note:', err);
     }
@@ -755,7 +777,7 @@ window.switchAuthPageTab = function(tab) {
 
 window.handlePageAuthSubmit = async function(e) {
   e.preventDefault();
-  const userInp = document.getElementById('authLoginUser')?.value;
+  const userInp = document.getElementById('authLoginUser')?.value?.trim();
   const pass = document.getElementById('authLoginPassword')?.value;
 
   if (!userInp || !pass) {
@@ -763,15 +785,29 @@ window.handlePageAuthSubmit = async function(e) {
     return;
   }
 
-  const expectedPassword = storage.getPassword();
-  if (expectedPassword && pass !== expectedPassword) {
-    showToast('Incorrect password. Please try again.', '⚠️');
+  const userId = getDeterministicUserId(userInp);
+  const existingUser = storage.getUserFromRegistry(userId);
+
+  // If password was previously configured for this user, check it
+  if (existingUser && existingUser.password && existingUser.password !== pass) {
+    showToast('Incorrect password for this account. Please try again.', '⚠️');
     return;
   }
 
   const user = storage.loginWithEmail(userInp, pass);
+
+  // Synchronize with Cloud Firestore database
   try {
-    await saveUserProfileToFirestore(user.id, user);
+    const cloudData = await syncUserDataWithFirestore(user.id);
+    if (cloudData) {
+      if (cloudData.profile) {
+        storage.updateProfile(cloudData.profile);
+      }
+      if (cloudData.trips && cloudData.trips.length > 0) {
+        storage.setTrips(cloudData.trips);
+      }
+    }
+    await saveUserProfileToFirestore(user.id, storage.getUser() || user);
   } catch (err) {
     console.warn('Firestore sync note:', err);
   }
@@ -784,10 +820,10 @@ window.handlePageAuthSubmit = async function(e) {
 
 window.handlePageRegisterSubmit = async function(e) {
   e.preventDefault();
-  const name = document.getElementById('authRegFullName')?.value;
-  const email = document.getElementById('authRegEmail')?.value;
+  const name = document.getElementById('authRegFullName')?.value?.trim();
+  const email = document.getElementById('authRegEmail')?.value?.trim();
   const pass = document.getElementById('authRegPassword')?.value;
-  const city = document.getElementById('authRegCity')?.value || '';
+  const city = document.getElementById('authRegCity')?.value?.trim() || '';
 
   if (!name || !email || !pass) {
     showToast('Please fill in all required fields.', '⚠️');
@@ -820,7 +856,12 @@ window.requestUserLocation = function() {
       triggerSuccessConfetti();
     },
     (errMsg) => {
-      alert(`Location access: ${errMsg}\nYou can choose a preset city below to view nearest attractions.`);
+      showAlertModal({
+        title: 'Location Notice',
+        message: `${errMsg}\n\nYou can select a preset city (Agra, Mathura, Vrindavan) to view nearest attractions.`,
+        icon: '📍',
+        buttonText: 'Got It'
+      });
       renderApp();
     }
   );
@@ -831,11 +872,21 @@ window.selectPresetCity = function(cityId) {
   renderApp();
 };
 
-window.handleLogout = function() {
-  if (confirm('Are you sure you want to log out?')) {
+window.handleLogout = async function() {
+  const confirmed = await showConfirmModal({
+    title: 'Log Out of TravelTales?',
+    message: 'Your profile, custom photo, and all planned trips will stay securely saved and connected to your account in the Database.',
+    confirmText: 'Log Out',
+    cancelText: 'Stay Logged In',
+    icon: '🚪',
+    isDanger: true
+  });
+
+  if (confirmed) {
     storage.logout();
     appState.currentTab = 'auth';
     renderApp();
+    showToast('You have been logged out.', '👋');
   }
 };
 
@@ -1148,26 +1199,42 @@ window.handleChangePassword = function(e) {
   }
 };
 
-window.deleteTripPlan = function(tripId) {
-  if (confirm('Delete this planned trip from schedule?')) {
-    storage.deleteTrip(tripId);
-    window.updateMainContent();
-  }
-};
-
-window.openNewTripModal = function() {
-  const title = prompt('Enter Trip Destination / Title:', 'Kyoto Zen Temples & Gardens');
-  if (!title) return;
-  const dates = prompt('Enter Date Range:', '15 Oct - 20 Oct');
-  storage.addTrip({
-    title: title,
-    location: 'International Destination',
-    dateRange: dates || 'Upcoming',
-    budgetTotal: 1600,
-    attendees: 2,
-    highlight: 'Newly added journey.'
+window.openNewTripModal = async function() {
+  const title = await showPromptModal({
+    title: 'New Trip Destination',
+    message: 'Enter destination or journey title to add to your Schedule:',
+    placeholder: 'e.g. Mathura & Vrindavan Heritage Circuit',
+    defaultValue: 'Braj Darshan & Yamuna Aarti',
+    confirmText: 'Continue'
   });
+  if (!title) return;
+
+  const dates = await showPromptModal({
+    title: 'Trip Date Range',
+    message: 'Enter travel dates for this trip:',
+    placeholder: 'e.g. 18 Oct - 20 Oct',
+    defaultValue: 'This Weekend',
+    confirmText: 'Add to Schedule'
+  });
+
+  const user = storage.getUser();
+  const newTrip = storage.addTrip({
+    title: title,
+    location: 'Heritage & Spiritual Tour',
+    dateRange: dates || 'Upcoming',
+    budgetTotal: 1800,
+    attendees: 2,
+    highlight: 'Curated custom journey.'
+  });
+
+  try {
+    await saveTripToFirestore(newTrip, user?.id || 'usr_guest');
+  } catch (e) {
+    console.warn('Firestore trip save note:', e);
+  }
+
   window.updateMainContent();
+  showToast('Trip added to schedule and synced to Database! 🚀', '✨');
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1392,14 +1459,21 @@ window.viewTripItinerary = function(tripId) {
 
 // Delete Trip from Schedule & Database
 window.deleteTripPlan = async function(tripId) {
-  if (!confirm('Are you sure you want to remove this trip from your Schedule and Database?')) {
-    return;
-  }
+  const confirmed = await showConfirmModal({
+    title: 'Delete Planned Trip?',
+    message: 'Are you sure you want to remove this trip from your Schedule and Database? This will permanently delete it from Cloud Firestore.',
+    confirmText: 'Delete Trip',
+    cancelText: 'Keep Trip',
+    icon: '🗑️',
+    isDanger: true
+  });
+
+  if (!confirmed) return;
 
   // 1. Delete from storage
   storage.deleteTrip(tripId);
 
-  // 2. Delete from Cloud Firestore
+  // 2. Delete live from Cloud Firestore Database
   try {
     await deleteTripFromFirestore(tripId);
   } catch (err) {
@@ -1435,9 +1509,14 @@ window.deleteExpenseItem = function(id) {
 };
 
 window.autoResolveConflict = function(type) {
-  alert(type === 'taj-friday' 
-    ? 'Auto-rescheduled Taj Mahal entry to Thursday Sunrise (6:00 AM). Friday prayer closure avoided!' 
-    : 'Added a 45-minute tea break & Mathura Peda tasting stop. Transit buffer resolved!');
+  showAlertModal({
+    title: type === 'taj-friday' ? 'Taj Mahal Friday Notice' : 'Transit Buffer Resolved',
+    message: type === 'taj-friday' 
+      ? 'Auto-rescheduled Taj Mahal entry to Thursday Sunrise (6:00 AM). Friday prayer closure avoided!' 
+      : 'Added a 45-minute tea break & Mathura Peda tasting stop. Transit buffer resolved!',
+    icon: '✨',
+    buttonText: 'Got It'
+  });
 };
 
 // Calendar Handlers
@@ -1517,12 +1596,20 @@ window.saveAllCloudSettings = function() {
       const parsedFb = JSON.parse(fbConfigJson);
       saveFirebaseConfig(parsedFb);
     } catch (err) {
-      alert('Firebase config is not valid JSON, but Cloudinary settings were saved!');
+      showAlertModal({
+        title: 'Invalid Firebase JSON',
+        message: 'The Firebase configuration provided is not valid JSON. Cloudinary settings were saved successfully.',
+        icon: '⚠️'
+      });
       return;
     }
   }
 
-  alert('✅ Cloud credentials saved successfully! Cloudinary and Firestore are ready.');
+  showAlertModal({
+    title: 'Cloud Credentials Configured',
+    message: 'Cloudinary CDN and Firestore Database configurations have been successfully saved.',
+    icon: '✅'
+  });
   window.closeCloudServicesModal();
   window.updateMainContent();
 };
@@ -1549,10 +1636,18 @@ window.handleSaveFirebaseConfig = function(e) {
   try {
     const parsed = JSON.parse(text);
     saveFirebaseConfig(parsed);
-    alert('Firebase Configuration saved successfully! Live Cloud adapter is now primed.');
+    showAlertModal({
+      title: 'Firebase Connected',
+      message: 'Firebase configuration saved successfully! Cloud Firestore is active.',
+      icon: '🔥'
+    });
     window.closeFirebaseModal();
   } catch (err) {
-    alert('Invalid JSON format. Please ensure valid configuration keys.');
+    showAlertModal({
+      title: 'Invalid JSON Format',
+      message: 'Please ensure valid JSON syntax with quotes around keys and values.',
+      icon: '⚠️'
+    });
   }
 };
 
@@ -1577,12 +1672,40 @@ window.handleModalBackdropClick = function(e, overlayId) {
   }
 };
 
+// Initial Cloud Firestore Data Sync on App Launch
+function initAppStartupSync() {
+  const activeUser = storage.getUser();
+  if (activeUser && activeUser.id) {
+    syncUserDataWithFirestore(activeUser.id).then(cloudData => {
+      if (cloudData) {
+        let shouldRerender = false;
+        if (cloudData.profile && Object.keys(cloudData.profile).length > 0) {
+          storage.updateProfile(cloudData.profile);
+          shouldRerender = true;
+        }
+        if (cloudData.trips && cloudData.trips.length > 0) {
+          storage.setTrips(cloudData.trips);
+          shouldRerender = true;
+        }
+        if (shouldRerender) {
+          renderApp();
+        }
+      }
+    }).catch(e => {
+      console.warn('Initial Firestore sync note:', e);
+    });
+  }
+}
+
 // Initialize Application on DOM Ready or immediately if DOM is already parsed
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     renderApp();
+    initAppStartupSync();
   });
 } else {
   renderApp();
+  initAppStartupSync();
 }
+
 
