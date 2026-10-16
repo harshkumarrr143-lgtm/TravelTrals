@@ -33,17 +33,10 @@ if (fs.existsSync(distAssetsDir)) {
   console.log(`✓ Copied ${files.length} asset files to root assets/`);
 }
 
-// 3. Copy public files (logos, icons, favicons, media) to root directory
+// 3. Copy public files and directories (logos, icons, images, media) to root directory
 if (fs.existsSync(publicDir)) {
-  const publicFiles = fs.readdirSync(publicDir);
-  for (const file of publicFiles) {
-    const srcPath = path.join(publicDir, file);
-    const destPath = path.join(rootDir, file);
-    if (fs.statSync(srcPath).isFile()) {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-  console.log(`✓ Copied ${publicFiles.length} public brand/media files to root`);
+  fs.cpSync(publicDir, rootDir, { recursive: true });
+  console.log('✓ Copied public brand/media/images directory recursively to root');
 }
 
 // 4. Ensure .nojekyll exists

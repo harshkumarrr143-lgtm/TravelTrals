@@ -18,7 +18,7 @@ export const travelData = {
       state: 'Uttar Pradesh',
       country: 'India',
       badge: 'Sacred Birthplace',
-      image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179833/traveltales_attractions/greva1i1tf8z7cmv1ukb.jpg',
       description: 'The revered birthplace of Lord Krishna, dotted with historic ghats, sacred aartis, and ancient spiritual energy.',
       attractionsCount: 3,
       foodSpecialties: ['Mathura ke Peda', 'Kachori with Dubki Wale Aloo', 'Makhan Mishri', 'Rabri Lassi']
@@ -29,7 +29,7 @@ export const travelData = {
       state: 'Uttar Pradesh',
       country: 'India',
       badge: 'Bhakti & Temples',
-      image: 'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179831/traveltales_attractions/kpl4ojcxuc3itf8aaeld.jpg',
       description: 'The playful holy land of Radha Krishna with historic temples, divine chanting, and evening musical light fountains.',
       attractionsCount: 4,
       foodSpecialties: ['Pedas of Vrindavan', 'Khurchan', 'Samosa & Hing Kachori', 'Chhappan Bhog']
@@ -96,10 +96,10 @@ export const travelData = {
       subtitle: 'The Walled Imperial Citadel of the Mughals',
       rating: 4.7,
       reviewsCount: 9230,
-      image: 'https://images.unsplash.com/photo-1585135497273-1a86b09fe70e?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/pieebzkkziyd5tz1fnse.jpg',
       gallery: [
-        'https://images.unsplash.com/photo-1585135497273-1a86b09fe70e?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80'
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/pieebzkkziyd5tz1fnse.jpg',
+        'https://images.unsplash.com/photo-1585135497273-1a86b09fe70e?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
       openingHours: {
@@ -139,8 +139,9 @@ export const travelData = {
       subtitle: 'Moonlight Garden with Iconic Taj Riverfront Views',
       rating: 4.6,
       reviewsCount: 4120,
-      image: 'https://images.unsplash.com/photo-1598324789736-4861f89564a0?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179839/traveltales_attractions/xs8fwi8t7zbiuzqf5fuy.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179839/traveltales_attractions/xs8fwi8t7zbiuzqf5fuy.jpg',
         'https://images.unsplash.com/photo-1598324789736-4861f89564a0?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
@@ -179,8 +180,9 @@ export const travelData = {
       subtitle: 'The Majestic Red Sandstone City of Victory',
       rating: 4.8,
       reviewsCount: 8900,
-      image: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179837/traveltales_attractions/knybhiqtaqia9e6vckky.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179837/traveltales_attractions/knybhiqtaqia9e6vckky.jpg',
         'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
@@ -223,10 +225,10 @@ export const travelData = {
       subtitle: 'The Sacred Birthplace of Lord Krishna',
       rating: 4.8,
       reviewsCount: 16500,
-      image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179833/traveltales_attractions/greva1i1tf8z7cmv1ukb.jpg',
       gallery: [
-        'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?auto=format&fit=crop&w=800&q=80'
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179833/traveltales_attractions/greva1i1tf8z7cmv1ukb.jpg',
+        'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       openingHours: {
@@ -266,8 +268,9 @@ export const travelData = {
       subtitle: 'Grand Rajasthani Temple on the Yamuna Banks',
       rating: 4.7,
       reviewsCount: 7800,
-      image: 'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/jk9fb20kqnef6zxvdiue.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/jk9fb20kqnef6zxvdiue.jpg',
         'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
@@ -306,8 +309,9 @@ export const travelData = {
       subtitle: 'The Sacred Ghat Where Lord Krishna Rested',
       rating: 4.8,
       reviewsCount: 9100,
-      image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/jzdjlpiwtsx8jwlemxys.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/jzdjlpiwtsx8jwlemxys.jpg',
         'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
@@ -350,8 +354,9 @@ export const travelData = {
       subtitle: 'The Heartbeat of Vrindavan Bhakti',
       rating: 4.9,
       reviewsCount: 22100,
-      image: 'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179832/traveltales_attractions/w0ytbvesnkkzkzoyomre.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179832/traveltales_attractions/w0ytbvesnkkzkzoyomre.jpg',
         'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
@@ -392,10 +397,10 @@ export const travelData = {
       subtitle: 'The Temple of Divine Love in White Italian Marble',
       rating: 4.8,
       reviewsCount: 19400,
-      image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179831/traveltales_attractions/kpl4ojcxuc3itf8aaeld.jpg',
       gallery: [
-        'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=800&q=80'
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179831/traveltales_attractions/kpl4ojcxuc3itf8aaeld.jpg',
+        'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
       openingHours: {
@@ -434,8 +439,9 @@ export const travelData = {
       subtitle: 'World-Renowned Center of Hare Krishna Chanting & Global Devotion',
       rating: 4.9,
       reviewsCount: 15300,
-      image: 'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179834/traveltales_attractions/ygbvzvssftcm2enp8ync.webp',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179834/traveltales_attractions/ygbvzvssftcm2enp8ync.webp',
         'https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
@@ -475,8 +481,9 @@ export const travelData = {
       subtitle: 'The Mystical Sacred Grove of Divine Raas Leela',
       rating: 4.7,
       reviewsCount: 10400,
-      image: 'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/aqevwgbneujth9aguar5.jpg',
       gallery: [
+        'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/aqevwgbneujth9aguar5.jpg',
         'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=800&q=80'
       ],
       videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
@@ -534,7 +541,7 @@ export const travelData = {
       startDate: '2024-10-22',
       endDate: '2024-10-25',
       status: 'Confirmed',
-      image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=300&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179831/traveltales_attractions/kpl4ojcxuc3itf8aaeld.jpg',
       attendees: 4,
       budgetTotal: 600,
       budgetPerPerson: 150,
@@ -549,7 +556,7 @@ export const travelData = {
       startDate: '2024-11-02',
       endDate: '2024-11-04',
       status: 'Planning',
-      image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=300&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179833/traveltales_attractions/greva1i1tf8z7cmv1ukb.jpg',
       attendees: 5,
       budgetTotal: 500,
       budgetPerPerson: 100,
@@ -564,7 +571,7 @@ export const travelData = {
       startDate: '2024-11-15',
       endDate: '2024-11-19',
       status: 'Confirmed',
-      image: 'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=300&q=80',
+      image: 'https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179832/traveltales_attractions/w0ytbvesnkkzkzoyomre.jpg',
       attendees: 4,
       budgetTotal: 1200,
       budgetPerPerson: 300,

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "prem-mandir",
+    "file": "prem mandir.jpg",
+    "name": "Prem Mandir",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179831/traveltales_attractions/kpl4ojcxuc3itf8aaeld.jpg",
+    "publicId": "traveltales_attractions/kpl4ojcxuc3itf8aaeld"
+  },
+  {
+    "id": "banke-bihari",
+    "file": "banke bihari.jpg",
+    "name": "Shri Banke Bihari",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179832/traveltales_attractions/w0ytbvesnkkzkzoyomre.jpg",
+    "publicId": "traveltales_attractions/w0ytbvesnkkzkzoyomre"
+  },
+  {
+    "id": "krishna-janmabhoomi",
+    "file": "janam bhumi.jpg",
+    "name": "Shri Krishna Janmabhoomi",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179833/traveltales_attractions/greva1i1tf8z7cmv1ukb.jpg",
+    "publicId": "traveltales_attractions/greva1i1tf8z7cmv1ukb"
+  },
+  {
+    "id": "iskcon-vrindavan",
+    "file": "isckon.webp",
+    "name": "ISKCON Vrindavan",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179834/traveltales_attractions/ygbvzvssftcm2enp8ync.webp",
+    "publicId": "traveltales_attractions/ygbvzvssftcm2enp8ync"
+  },
+  {
+    "id": "nidhivan",
+    "file": "nidhivan.jpg",
+    "name": "Nidhivan",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/aqevwgbneujth9aguar5.jpg",
+    "publicId": "traveltales_attractions/aqevwgbneujth9aguar5"
+  },
+  {
+    "id": "dwarkadhish-temple",
+    "file": "dwarkadhish.jpg",
+    "name": "Dwarkadhish Temple",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179835/traveltales_attractions/jk9fb20kqnef6zxvdiue.jpg",
+    "publicId": "traveltales_attractions/jk9fb20kqnef6zxvdiue"
+  },
+  {
+    "id": "vishram-ghat",
+    "file": "vishram ghat.jpg",
+    "name": "Vishram Ghat",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/jzdjlpiwtsx8jwlemxys.jpg",
+    "publicId": "traveltales_attractions/jzdjlpiwtsx8jwlemxys"
+  },
+  {
+    "id": "agra-fort",
+    "file": "red fort.jpg",
+    "name": "Agra Fort",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179836/traveltales_attractions/pieebzkkziyd5tz1fnse.jpg",
+    "publicId": "traveltales_attractions/pieebzkkziyd5tz1fnse"
+  },
+  {
+    "id": "fatehpur-sikri",
+    "file": "fatehpur sikri.jpg",
+    "name": "Fatehpur Sikri",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179837/traveltales_attractions/knybhiqtaqia9e6vckky.jpg",
+    "publicId": "traveltales_attractions/knybhiqtaqia9e6vckky"
+  },
+  {
+    "id": "mehtab-bagh",
+    "file": "mehtab bagh.jpg",
+    "name": "Mehtab Bagh",
+    "url": "https://res.cloudinary.com/dtbgjhtm/image/upload/v1792179839/traveltales_attractions/xs8fwi8t7zbiuzqf5fuy.jpg",
+    "publicId": "traveltales_attractions/xs8fwi8t7zbiuzqf5fuy"
+  }
+]
