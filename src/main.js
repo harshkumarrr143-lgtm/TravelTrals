@@ -55,10 +55,7 @@ function renderApp() {
   const appContainer = document.getElementById('app');
   if (!appContainer) return;
 
-  const user = storage.getUser();
-  const isLoggedIn = user && user.isLoggedIn;
-
-  if (!isLoggedIn || appState.currentTab === 'auth' || appState.currentTab === 'login' || appState.currentTab === 'register') {
+  if (appState.currentTab === 'auth' || appState.currentTab === 'login' || appState.currentTab === 'register') {
     // Full-screen auth page — no sidebar/topbar
     appContainer.innerHTML = `
       ${renderCurrentView()}
@@ -123,14 +120,12 @@ function renderCurrentView() {
   const user = storage.getUser();
   const isLoggedIn = user && user.isLoggedIn;
 
-  // Guard: if not logged in, always show auth page
-  if (!isLoggedIn) {
-    return renderAuthPage();
-  }
-
   if (appState.currentTab === 'login' || appState.currentTab === 'register' || appState.currentTab === 'auth') {
     return renderAuthPage();
   } else if (appState.currentTab === 'profile') {
+    if (!isLoggedIn) {
+      return renderAuthPage();
+    }
     return renderUserProfile();
   } else if (appState.currentTab === 'planner') {
     return renderTripPlanner();
@@ -1582,8 +1577,12 @@ window.handleModalBackdropClick = function(e, overlayId) {
   }
 };
 
-// Initialize Application on DOM Ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize Application on DOM Ready or immediately if DOM is already parsed
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    renderApp();
+  });
+} else {
   renderApp();
-});
+}
 
