@@ -142,7 +142,9 @@ class StorageService {
       // Always pull fresh synced data from the users registry if available
       const registryUser = this.getUserFromRegistry(user.id);
       if (registryUser) {
-        const merged = { ...registryUser, ...user, isLoggedIn: true };
+        // Master source of truth: preserve photoUrl if either copy has it
+        const photo = user.photoUrl || registryUser.photoUrl || '';
+        const merged = { ...registryUser, ...user, photoUrl: photo, isLoggedIn: true };
         return merged;
       }
       return user;
@@ -164,9 +166,16 @@ class StorageService {
       createdAt: new Date().toISOString()
     };
 
+    // Protect photoUrl: if updates.photoUrl is empty/missing, preserve existing photoUrl unless explicitly cleared
+    let finalPhoto = updates.photoUrl;
+    if (finalPhoto === undefined || finalPhoto === null || (finalPhoto === '' && current.photoUrl && !updates.forceClearPhoto)) {
+      finalPhoto = current.photoUrl;
+    }
+
     const updated = { 
       ...current, 
       ...updates, 
+      photoUrl: finalPhoto,
       isLoggedIn: true,
       updatedAt: new Date().toISOString()
     };
@@ -176,13 +185,6 @@ class StorageService {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
     } catch (e) {
       console.warn('LocalStorage save note for current user:', e);
-      if (updated.photoUrl && updated.photoUrl.length > 200000) {
-        // If avatar string is huge, trim it for localStorage cache while keeping it in memory
-        try {
-          const lightUser = { ...updated, photoUrl: '' };
-          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(lightUser));
-        } catch (e2) {}
-      }
     }
 
     // 2. Persist in multi-user registry by stable ID

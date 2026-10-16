@@ -1084,35 +1084,21 @@ window.handleLocalPhotoSelect = async function(event) {
 
     // Cloudinary upload successful!
     const cloudinaryUrl = uploadResult.url;
-    updateAvatarElementsOnPage(cloudinaryUrl);
+    console.log('✅ Cloudinary Upload Succeeded! Photo CDN URL:', cloudinaryUrl);
 
     // Persist Cloudinary URL in user profile & database
     const currentUser = storage.updateProfile({ photoUrl: cloudinaryUrl });
-    await saveUserProfileToFirestore(currentUser.id, currentUser);
-
-    if (statusText) {
-      statusText.innerHTML = '✅ Saved to Cloudinary CDN!';
-      statusText.style.color = '#059669';
-    }
-    if (progressFill) progressFill.style.width = '100%';
-    if (percentText) percentText.textContent = '100%';
-    if (detailMsg) {
-      detailMsg.innerHTML = `<span style="word-break: break-all; color: #059669;">Hosted at: ${cloudinaryUrl}</span>`;
+    try {
+      await saveUserProfileToFirestore(currentUser.id, currentUser);
+    } catch (e) {
+      console.warn('Firestore photo save note:', e);
     }
 
-    showToast('Profile photo successfully saved! 📸', '✨');
+    // Immediately re-render application so Topbar avatar and Profile header show the uploaded image!
+    updateAvatarElementsOnPage(cloudinaryUrl);
+    renderApp();
 
-    // Auto-hide progress indicator after 2 seconds
-    setTimeout(() => {
-      if (progressBox) {
-        progressBox.style.transition = 'opacity 0.4s ease';
-        progressBox.style.opacity = '0';
-        setTimeout(() => { 
-          progressBox.style.display = 'none'; 
-          progressBox.style.opacity = '1'; 
-        }, 420);
-      }
-    }, 2000);
+    showToast('Profile photo successfully saved and active! 📸', '✨');
 
     // Record image in Firestore image collection
     await recordImageInFirestore({
@@ -1126,21 +1112,8 @@ window.handleLocalPhotoSelect = async function(event) {
 
   } catch (error) {
     console.warn('Cloudinary upload note:', error);
-    // Even if Cloudinary is offline or error, image is safely saved to local profile
-    if (statusText) {
-      statusText.innerHTML = '✅ Photo saved to profile!';
-      statusText.style.color = '#059669';
-    }
-    if (progressFill) progressFill.style.width = '100%';
-    if (percentText) percentText.textContent = '100%';
-    if (detailMsg) {
-      detailMsg.innerHTML = `<span style="color: #64748B;">Saved locally to your account.</span>`;
-    }
-    showToast('Profile photo updated successfully! 📸', '✨');
-
-    setTimeout(() => {
-      if (progressBox) progressBox.style.display = 'none';
-    }, 2500);
+    renderApp();
+    showToast('Photo saved locally to your profile! 📸', '✅');
   }
 };
 
@@ -1158,7 +1131,9 @@ window.handleSaveProfile = async function(e) {
   const email = document.getElementById('editEmail')?.value;
   const homeCity = document.getElementById('editHomeCity')?.value;
   const bio = document.getElementById('editBio')?.value;
-  const photoUrl = document.getElementById('editPhotoUrl')?.value;
+  const photoUrlInput = document.getElementById('editPhotoUrl')?.value?.trim();
+  const existingPhoto = storage.getUser()?.photoUrl || '';
+  const photoUrl = photoUrlInput || existingPhoto;
 
   const profileData = { name, phone, email, homeCity, bio, photoUrl };
 
@@ -1186,7 +1161,7 @@ window.handleSaveProfile = async function(e) {
 
 window.removeProfilePhoto = async function() {
   updateAvatarElementsOnPage('');
-  const updated = storage.updateProfile({ photoUrl: '' });
+  const updated = storage.updateProfile({ photoUrl: '', forceClearPhoto: true });
   try {
     if (updated && updated.id) {
       await saveUserProfileToFirestore(updated.id, updated);
@@ -1821,9 +1796,17 @@ function initAppStartupSync() {
     syncUserDataWithFirestore(activeUser.id).then(cloudData => {
       if (cloudData) {
         let shouldRerender = false;
-        if (cloudData.profile && Object.keys(cloudData.profile).length > 0) {
-          storage.updateProfile(cloudData.profile);
-          shouldRerender = true;
+        if (cloudData.profile && typeof cloudData.profile === 'object') {
+          const validUpdates = {};
+          for (const [k, v] of Object.entries(cloudData.profile)) {
+            if (v !== undefined && v !== null && v !== '') {
+              validUpdates[k] = v;
+            }
+          }
+          if (Object.keys(validUpdates).length > 0) {
+            storage.updateProfile(validUpdates);
+            shouldRerender = true;
+          }
         }
         if (cloudData.trips && cloudData.trips.length > 0) {
           storage.setTrips(cloudData.trips);
