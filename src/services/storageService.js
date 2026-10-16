@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   FAVORITES: 'traveltales_favorites',
   BOOKINGS: 'traveltales_bookings',
   TRIPS: 'traveltales_trips',
+  TRIPS_INITIALIZED: 'traveltales_trips_initialized',
   BUDGET: 'traveltales_budget',
   PASSWORD: 'traveltales_user_password',
   PWD_UPDATED: 'traveltales_user_pwd_updated'
@@ -69,9 +70,12 @@ class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.BOOKINGS)) {
       localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(INITIAL_BOOKINGS));
     }
-    // Initialize trips
-    if (!localStorage.getItem(STORAGE_KEYS.TRIPS)) {
-      localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(travelData.scheduleTrips));
+    // Initialize trips only if first visit and never initialized
+    if (!localStorage.getItem(STORAGE_KEYS.TRIPS_INITIALIZED)) {
+      if (localStorage.getItem(STORAGE_KEYS.TRIPS) === null) {
+        localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(travelData.scheduleTrips));
+      }
+      localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
     }
     // Initialize budget
     if (!localStorage.getItem(STORAGE_KEYS.BUDGET)) {
@@ -474,7 +478,15 @@ class StorageService {
   // --- TRIPS & ITINERARIES (Scoped by user) ---
   getTrips() {
     try {
-      const allTrips = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRIPS) || '[]');
+      const raw = localStorage.getItem(STORAGE_KEYS.TRIPS);
+      // Only seed default demo trips on fresh installation if never initialized
+      if (raw === null && !localStorage.getItem(STORAGE_KEYS.TRIPS_INITIALIZED)) {
+        localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(travelData.scheduleTrips));
+        localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
+        return travelData.scheduleTrips;
+      }
+
+      const allTrips = JSON.parse(raw || '[]');
       const user = this.getUser();
       const currentUserId = user?.id;
 
@@ -482,28 +494,25 @@ class StorageService {
       const validTrips = allTrips.filter(t => !/switzerland|alps|crook|tartaruga|gioc|jaipur|amber|hawa/i.test((t.location || '') + ' ' + (t.title || '')));
 
       if (currentUserId) {
-        // Find trips explicitly created by or assigned to this user
-        const userTrips = validTrips.filter(t => t.userId === currentUserId);
-        if (userTrips.length > 0) {
-          return userTrips;
+        const userSpecific = validTrips.filter(t => t.userId === currentUserId);
+        if (userSpecific.length > 0) {
+          return userSpecific;
         }
+        // If user has no custom trips created, return remaining unassigned/curated trips (or [] if deleted)
+        return validTrips.filter(t => !t.userId);
       }
 
-      // If no custom user trips yet, return initial curated trips
-      if (validTrips.length === 0) {
-        localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(travelData.scheduleTrips));
-        return travelData.scheduleTrips;
-      }
       return validTrips;
     } catch {
-      return travelData.scheduleTrips;
+      return [];
     }
   }
 
   setTrips(trips) {
     try {
       localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips || []));
-      this.notify('trips:updated', trips);
+      localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
+      this.notify('trips:updated', trips || []);
     } catch (e) {
       console.warn('Failed to set trips:', e);
     }
@@ -525,6 +534,7 @@ class StorageService {
 
     allTrips.unshift(newTrip);
     localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(allTrips));
+    localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
     this.notify('trips:updated', allTrips);
     return newTrip;
   }
@@ -533,8 +543,17 @@ class StorageService {
     let allTrips = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRIPS) || '[]');
     allTrips = allTrips.filter(t => t.id !== tripId);
     localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(allTrips));
+    // Explicitly record that the user has modified their trips so we NEVER auto-fill again
+    localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
     this.notify('trips:updated', allTrips);
     return allTrips;
+  }
+
+  clearAllTrips() {
+    localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.TRIPS_INITIALIZED, 'true');
+    this.notify('trips:updated', []);
+    return [];
   }
 
   // --- BUDGET SHARING ---

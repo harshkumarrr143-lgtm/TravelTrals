@@ -135,15 +135,39 @@ export function renderUserProfile() {
 
       <!-- Tab 1: Planned Trips -->
       ${profileTab === 'trips' ? `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
           <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700;">My Planned Journeys</h3>
-          <button class="btn-book-travel" onclick="window.openNewTripModal()">
-            + Plan New Trip
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            ${trips.length > 0 ? `
+              <button 
+                class="schedule-clear-all-btn" 
+                onclick="window.clearAllTripPlans()" 
+                title="Clear all planned trip cards"
+                style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: var(--radius-full); padding: 7px 14px; font-size: 12px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease;"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear All Trips
+              </button>
+            ` : ''}
+            <button class="btn-book-travel" onclick="window.openNewTripModal()">
+              + Plan New Trip
+            </button>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-          ${trips.map(trip => `
+          ${trips.length === 0 ? `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: white; border-radius: 16px; border: 1.5px dashed #E2E8F0;">
+              <div style="font-size: 40px; margin-bottom: 12px; opacity: 0.8;">🗺️</div>
+              <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">No Planned Trips</h3>
+              <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; max-width: 420px; margin-left: auto; margin-right: auto;">
+                You currently have no scheduled trips. Use our GoCity-style Trip Planner to craft a personalized multi-day journey!
+              </p>
+              <button class="btn-book-travel" onclick="window.startNewGoCityPlan()">
+                + Plan a Trip Now
+              </button>
+            </div>
+          ` : trips.map(trip => `
             <div class="travel-card" style="cursor: default;">
               <div class="card-img-wrapper" style="height: 160px;">
                 <img src="${trip.image}" alt="${trip.title}" class="card-img" />

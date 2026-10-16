@@ -1680,6 +1680,37 @@ window.deleteTripPlan = async function(tripId) {
   showToast('Trip removed from Schedule and Database.', '🗑️');
 };
 
+// Clear All Planned Trips from Schedule & Database
+window.clearAllTripPlans = async function() {
+  const trips = storage.getTrips();
+  if (!trips || trips.length === 0) return;
+
+  const confirmed = await showConfirmModal({
+    title: 'Delete All Planned Trips?',
+    message: `Are you sure you want to remove all ${trips.length} planned trip cards? They will be permanently deleted from your Schedule and Database.`,
+    confirmText: 'Delete All',
+    cancelText: 'Keep Trips',
+    icon: '🗑️',
+    isDanger: true
+  });
+
+  if (!confirmed) return;
+
+  for (const t of trips) {
+    if (t.id) {
+      try {
+        await deleteTripFromFirestore(t.id);
+      } catch (err) {
+        console.warn('Firestore delete error for trip:', t.id, err);
+      }
+    }
+  }
+
+  storage.clearAllTrips();
+  renderApp();
+  showToast('All planned trip cards removed.', '🗑️');
+};
+
 window.toggleAddExpenseForm = function() {
   const form = document.getElementById('addExpenseInlineForm');
   if (form) {

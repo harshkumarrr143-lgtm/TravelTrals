@@ -97,9 +97,22 @@ export function renderScheduleCalendar() {
               <span>${hasCloudDb ? 'Cloud DB Active' : 'DB Ready'}</span>
             </span>
           </div>
-          <button class="schedule-new-plan-btn" onclick="window.startNewGoCityPlan()" title="Create new trip itinerary">
-            + Plan Trip
-          </button>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${trips.length > 0 ? `
+              <button 
+                class="schedule-clear-all-btn" 
+                onclick="window.clearAllTripPlans()" 
+                title="Clear all planned trip cards"
+                style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: var(--radius-full); padding: 5px 11px; font-size: 11.5px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease;"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear All
+              </button>
+            ` : ''}
+            <button class="schedule-new-plan-btn" onclick="window.startNewGoCityPlan()" title="Create new trip itinerary">
+              + Plan Trip
+            </button>
+          </div>
         </div>
 
         <div class="schedule-items-list">
