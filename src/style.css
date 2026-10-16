@@ -3454,5 +3454,51 @@ a {
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
+/* Custom Google Auth Modal */
+.google-auth-card {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 440px;
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: modalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10001;
+}
+
+/* User Avatar Initials Badge (Clean real avatar, no fake stock photo) */
+.user-avatar-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-orange), #ea580c);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(250, 130, 35, 0.3);
+  flex-shrink: 0;
+}
+
+.profile-main-avatar-initials {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-orange), #c2410c);
+  color: white;
+  font-weight: 800;
+  font-size: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  border: 4px solid white;
+  flex-shrink: 0;
+}
+
+
 
 

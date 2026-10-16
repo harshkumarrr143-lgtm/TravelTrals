@@ -11,38 +11,8 @@ const STORAGE_KEYS = {
   PWD_UPDATED: 'traveltales_user_pwd_updated'
 };
 
-// Default Demo User
-const DEFAULT_USER = {
-  id: 'usr_alex_01',
-  name: 'Alex Rivera',
-  email: 'alex.rivera@example.com',
-  phone: '+91 98765 43210',
-  photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-  bio: 'Passionate traveler exploring the sacred temples of Vrindavan, holy ghats of Mathura, and Mughal wonders of Agra.',
-  homeCity: 'Agra, India',
-  isLoggedIn: true,
-  createdAt: '2024-01-15'
-};
-
-// Initial default bookings to showcase the feature
-const INITIAL_BOOKINGS = [
-  {
-    id: 'TT-BK-9281',
-    attractionId: 'taj-mahal',
-    attractionName: 'Taj Mahal',
-    cityName: 'Agra, India',
-    date: '2024-06-18',
-    timeSlot: '06:00 AM - 08:30 AM (Sunrise Slot)',
-    ticketTier: 'Skip-The-Line VIP Entry',
-    guests: { adults: 2, children: 0 },
-    totalPaid: 3300,
-    currency: '₹',
-    paymentMethod: 'Google Pay (UPI)',
-    status: 'Confirmed',
-    bookedAt: '2024-05-10',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TT-BK-9281-TAJ-MAHAL'
-  }
-];
+// Default initial state (Clean - No fake users)
+const INITIAL_BOOKINGS = [];
 
 // Initial default budget items (Agra, Mathura & Vrindavan)
 const INITIAL_BUDGET = [
@@ -118,15 +88,32 @@ class StorageService {
   getUser() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const user = JSON.parse(data);
+      // Remove any leftover legacy demo users
+      if (user && (user.id === 'usr_alex_01' || user.id === 'usr_user_default' || user.name === 'Alex Rivera' || user.name === 'Elena Rostova' || user.email === 'alex.rivera@example.com')) {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        return null;
+      }
+      return (user && user.isLoggedIn) ? user : null;
     } catch {
       return null;
     }
   }
 
   updateProfile(updates) {
-    const current = this.getUser() || DEFAULT_USER;
-    const updated = { ...current, ...updates };
+    const current = this.getUser() || {
+      id: 'usr_' + Date.now().toString(36),
+      name: 'Traveler',
+      email: '',
+      phone: '',
+      photoUrl: '',
+      bio: '',
+      homeCity: '',
+      isLoggedIn: true,
+      createdAt: new Date().toISOString()
+    };
+    const updated = { ...current, ...updates, isLoggedIn: true };
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
     this.notify('user:updated', updated);
     return updated;
@@ -136,9 +123,9 @@ class StorageService {
     try {
       const user = this.getUser();
       if (user && user.password) return user.password;
-      return localStorage.getItem(STORAGE_KEYS.PASSWORD) || 'user';
+      return localStorage.getItem(STORAGE_KEYS.PASSWORD) || '';
     } catch {
-      return 'user';
+      return '';
     }
   }
 
@@ -152,16 +139,14 @@ class StorageService {
 
   changePassword(currentPassword, newPassword) {
     const existingPassword = this.getPassword();
-    if (!currentPassword) {
-      return { success: false, message: 'Please enter your current password.' };
-    }
-    if (currentPassword !== existingPassword) {
+    // If no existing password set, allow setting the first password
+    if (existingPassword && currentPassword !== existingPassword) {
       return { success: false, message: 'Incorrect current password. Please try again.' };
     }
     if (!newPassword || newPassword.trim().length < 4) {
       return { success: false, message: 'New password must be at least 4 characters long.' };
     }
-    if (newPassword === existingPassword) {
+    if (existingPassword && newPassword === existingPassword) {
       return { success: false, message: 'New password must be different from your current password.' };
     }
 
@@ -185,54 +170,70 @@ class StorageService {
   }
 
   loginWithEmail(email, password) {
-    const isDefault = !email || email.trim().toLowerCase() === 'user' || email.trim().toLowerCase() === 'user@traveltales.com';
-    const userName = isDefault 
-      ? 'User' 
-      : (email.includes('@') ? email.split('@')[0].replace('.', ' ').replace(/^(\w)/, c => c.toUpperCase()) : email);
+    if (!email) return null;
+    const cleanEmail = email.trim();
+    const userName = cleanEmail.includes('@')
+      ? cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : cleanEmail.charAt(0).toUpperCase() + cleanEmail.slice(1);
 
     const user = {
-      id: isDefault ? 'usr_user_default' : 'usr_' + Date.now().toString(36),
+      id: 'usr_' + Date.now().toString(36),
       name: userName,
-      email: isDefault ? 'user@traveltales.com' : (email.includes('@') ? email : `${email}@traveltales.com`),
-      phone: '+91 98765 43210',
-      photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-      bio: 'Enthusiastic explorer visiting historical landmarks and holy cities.',
-      homeCity: 'Agra, India',
+      email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@gmail.com`,
+      phone: '',
+      photoUrl: '', // Clean profile, no fake image
+      bio: '',
+      homeCity: '',
       isLoggedIn: true,
       createdAt: new Date().toISOString()
     };
+    if (password) {
+      user.password = password;
+      localStorage.setItem(STORAGE_KEYS.PASSWORD, password);
+    }
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
     this.notify('user:login', user);
     return user;
   }
 
   loginWithPhone(phone, password) {
+    const cleanPhone = (phone || '').trim();
     const user = {
       id: 'usr_ph_' + Date.now().toString(36),
-      name: 'Traveler ' + phone.slice(-4),
-      email: `user${phone.slice(-4)}@traveltales.io`,
-      phone: phone,
-      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      bio: 'Mobile verified traveler ready for spontaneous journeys.',
-      homeCity: 'Mathura, India',
+      name: 'Traveler ' + (cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone),
+      email: '',
+      phone: cleanPhone,
+      photoUrl: '', // Clean profile, no fake image
+      bio: '',
+      homeCity: '',
       isLoggedIn: true,
       createdAt: new Date().toISOString()
     };
+    if (password) {
+      user.password = password;
+      localStorage.setItem(STORAGE_KEYS.PASSWORD, password);
+    }
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
     this.notify('user:login', user);
     return user;
   }
 
-  loginWithGoogle() {
+  loginWithGoogle(googleEmail, googleName, googlePhoto = '') {
+    const cleanEmail = (googleEmail || '').trim();
+    const name = (googleName && googleName.trim())
+      ? googleName.trim()
+      : (cleanEmail.includes('@') ? cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Google Traveler');
+
     const user = {
-      id: 'usr_g_' + Math.random().toString(36).substring(2, 9),
-      name: 'Elena Rostova',
-      email: 'elena.rostova@gmail.com',
-      phone: '+91 98765 12345',
-      photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-      bio: 'Photographer & culture seeker. Exploring sacred temples, forts, and holy river ghats.',
-      homeCity: 'Vrindavan, India',
+      id: 'usr_g_' + Date.now().toString(36),
+      name: name,
+      email: cleanEmail,
+      phone: '',
+      photoUrl: googlePhoto || '', // Real photo if provided via Google or empty
+      bio: '',
+      homeCity: '',
       isLoggedIn: true,
+      provider: 'google',
       createdAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
@@ -243,15 +244,19 @@ class StorageService {
   register(userData) {
     const user = {
       id: 'usr_reg_' + Date.now().toString(36),
-      name: userData.name || 'New Traveler',
-      email: userData.email || '',
-      phone: userData.phone || '',
-      photoUrl: userData.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-      bio: userData.bio || 'New explorer on TravelTales.',
-      homeCity: userData.homeCity || 'Traveler Destination',
+      name: (userData.name || '').trim() || 'New Traveler',
+      email: (userData.email || '').trim(),
+      phone: (userData.phone || '').trim(),
+      photoUrl: userData.photoUrl || '', // Clean, no fake image
+      bio: userData.bio || '',
+      homeCity: userData.homeCity || '',
       isLoggedIn: true,
       createdAt: new Date().toISOString()
     };
+    if (userData.password) {
+      user.password = userData.password;
+      localStorage.setItem(STORAGE_KEYS.PASSWORD, userData.password);
+    }
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
     this.notify('user:register', user);
     return user;
@@ -259,7 +264,6 @@ class StorageService {
 
   logout() {
     const user = this.getUser();
-    // Clear user session completely from localStorage
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     this.notify('user:logout', user);
   }
@@ -273,9 +277,9 @@ class StorageService {
       if (filtered.length !== favs.length) {
         localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(filtered));
       }
-      return filtered.length > 0 ? filtered : ['taj-mahal', 'prem-mandir', 'krishna-janmabhoomi'];
+      return filtered;
     } catch {
-      return ['taj-mahal', 'prem-mandir', 'krishna-janmabhoomi'];
+      return [];
     }
   }
 

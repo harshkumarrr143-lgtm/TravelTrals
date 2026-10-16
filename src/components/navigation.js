@@ -173,14 +173,25 @@ export function renderTopbar() {
           <span class="notification-dot"></span>
         </button>
 
-        <!-- User Profile Pill -->
-        <div class="user-profile-trigger" onclick="window.navigateTo('profile')">
-          <img src="${user?.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}" alt="User Avatar" class="user-avatar-img" />
-          <div class="user-info-text">
-            <div class="user-display-name">${user?.name || 'Alex Rivera'}</div>
-            <div class="user-role-label">Verified Traveler</div>
+        <!-- User Profile Pill or Sign In Button -->
+        ${user && user.isLoggedIn ? `
+          <div class="user-profile-trigger" onclick="window.navigateTo('profile')">
+            ${user.photoUrl ? `
+              <img src="${user.photoUrl}" alt="${user.name}" class="user-avatar-img" />
+            ` : `
+              <div class="user-avatar-initials">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</div>
+            `}
+            <div class="user-info-text">
+              <div class="user-display-name">${user.name}</div>
+              <div class="user-role-label">Verified Traveler</div>
+            </div>
           </div>
-        </div>
+        ` : `
+          <button class="promo-btn" style="background: var(--accent-orange); color: white; font-weight: 700; border-radius: var(--radius-full); padding: 8px 18px; border: none; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 4px 12px rgba(250, 130, 35, 0.25); font-size: 13px;" onclick="window.navigateTo('auth')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+            Sign In / Register
+          </button>
+        `}
       </div>
     </header>
   `;

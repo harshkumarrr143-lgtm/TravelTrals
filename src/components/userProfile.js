@@ -3,34 +3,50 @@ import { travelData } from '../data/travelData.js';
 import { isCloudinaryConfigured } from '../services/cloudinaryService.js';
 import { isFirebaseConnected } from '../services/firebaseConfig.js';
 
-let profileTab = 'trips'; // 'trips', 'favorites', 'tickets', 'edit'
+let profileTab = 'trips'; // 'trips', 'favorites', 'tickets', 'edit', 'security'
 
 export function setProfileTab(tab) {
   profileTab = tab;
 }
 
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80'
-];
-
 export function renderUserProfile() {
-  const user = storage.getUser() || {
-    name: 'Alex Rivera',
-    email: 'alex.rivera@example.com',
-    phone: '+1 (555) 234-5678',
-    photoUrl: PRESET_AVATARS[0],
-    bio: 'Avid traveler and architecture lover.',
-    homeCity: 'San Francisco, CA'
-  };
+  const user = storage.getUser();
+
+  // If user is not logged in, prompt to register or sign in
+  if (!user || !user.isLoggedIn) {
+    return `
+      <div class="profile-view-container" style="max-width: 620px; margin: 40px auto; text-align: center;">
+        <div class="profile-hero-card" style="padding: 44px 28px; display: flex; flex-direction: column; align-items: center;">
+          <div style="width: 72px; height: 72px; border-radius: 50%; background: #FFF7ED; color: var(--accent-orange); display: flex; align-items: center; justify-content: center; margin-bottom: 18px; font-size: 32px;">
+            👤
+          </div>
+          <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+            Traveler Profile
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 14px; max-width: 420px; margin: 0 auto 24px auto; line-height: 1.6;">
+            Create an account or sign in with your email or Google account to access your personalized travel dashboard, view bookings, and plan trips.
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn-book-travel" onclick="window.navigateTo('auth')">
+              Sign In or Register
+            </button>
+            <button class="promo-btn" style="background: white; border: 1px solid #dadce0; color: #3c4043; font-weight: 600; padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;" onclick="window.openGoogleLoginModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+              Sign In with Google
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   const trips = storage.getTrips();
   const favorites = storage.getFavorites();
-  const favoriteAttractions = travelData.attractions.filter(a => favorites.includes(a.id));
   const bookings = storage.getBookings();
 
   return `
@@ -38,8 +54,12 @@ export function renderUserProfile() {
       <!-- Profile Header Hero Card -->
       <div class="profile-hero-card">
         <div class="profile-avatar-wrapper">
-          <img src="${user.photoUrl}" alt="${user.name}" class="profile-main-avatar" id="profileHeaderAvatar" />
-          <button class="avatar-edit-overlay" onclick="window.switchProfileTab('edit')" title="Change Avatar Photo">
+          ${user.photoUrl ? `
+            <img src="${user.photoUrl}" alt="${user.name}" class="profile-main-avatar" id="profileHeaderAvatar" />
+          ` : `
+            <div class="profile-main-avatar-initials">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</div>
+          `}
+          <button class="avatar-edit-overlay" onclick="window.switchProfileTab('edit')" title="Upload / Change Profile Photo">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
             </svg>
@@ -54,33 +74,36 @@ export function renderUserProfile() {
             </button>
           </div>
 
-          <p class="profile-meta-bio">${user.bio || 'Exploring world heritage sites and mountain escapes.'}</p>
+          <p class="profile-meta-bio">${user.bio || 'Traveler exploring world heritage sites and cultural landmarks.'}</p>
 
           <div class="profile-contact-chips">
-            <div class="contact-chip">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-              </svg>
-              ${user.email}
-            </div>
+            ${user.email ? `
+              <div class="contact-chip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                ${user.email}
+              </div>
+            ` : ''}
 
-            <div class="contact-chip">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-              </svg>
-              ${user.phone || '+1 (555) 234-5678'}
-            </div>
+            ${user.phone ? `
+              <div class="contact-chip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                ${user.phone}
+              </div>
+            ` : ''}
 
-            <div class="contact-chip">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              ${user.homeCity || 'San Francisco, CA'}
-            </div>
+            ${user.homeCity ? `
+              <div class="contact-chip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                ${user.homeCity}
+              </div>
+            ` : ''}
 
-            <div class="contact-chip" style="background: #E8FBF4; color: var(--primary-dark); font-weight: 700;">
-              ✓ Firebase Connected Ready
-            </div>
             <div class="contact-chip" style="cursor: pointer; background: #FFF1F2; color: #E11D48; border: 1px solid #FECDD3; font-weight: 700;" onclick="window.navigateTo('favorites')" title="Open Dedicated Wishlist">
               ❤️ Wishlist (${favorites.length}) →
             </div>
@@ -161,16 +184,22 @@ export function renderUserProfile() {
 
 
           <form id="editProfileForm" onsubmit="window.handleSaveProfile(event)">
-            <!-- Photo Manager: Local Gallery Upload & Presets -->
+            <!-- Photo Manager: Upload From Local Device & Remove Photo -->
             <div class="profile-photo-manager">
               <label class="form-label" style="margin: 0; font-size: 13.5px;">
-                Choose Profile Avatar / Upload From Local Gallery
+                Profile Photo (Device Gallery / Cloudinary)
               </label>
 
               <!-- Local Upload & Avatar Preview Row -->
               <div class="profile-avatar-preview-row">
                 <div class="avatar-preview-wrapper" onclick="document.getElementById('localPhotoInput').click()" title="Click to choose a photo from your computer or gallery">
-                  <img id="avatarPreviewImg" src="${user.photoUrl}" alt="Avatar Preview" class="avatar-preview-img" />
+                  ${user.photoUrl ? `
+                    <img id="avatarPreviewImg" src="${user.photoUrl}" alt="Avatar Preview" class="avatar-preview-img" />
+                  ` : `
+                    <div id="avatarPreviewImg" class="profile-main-avatar-initials" style="width: 72px; height: 72px; font-size: 26px;">
+                      ${user.name ? user.name.charAt(0).toUpperCase() : '📷'}
+                    </div>
+                  `}
                   <div class="avatar-preview-overlay">
                     <span>📷 Change</span>
                   </div>
@@ -197,10 +226,22 @@ export function renderUserProfile() {
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <polyline points="21 15 16 10 5 21"/>
                       </svg>
-                      📁 Add Photo from Local Gallery
+                      📁 Upload Photo from Device
                     </button>
+
+                    ${user.photoUrl ? `
+                      <button 
+                        type="button" 
+                        class="promo-btn" 
+                        style="background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; font-weight: 600; padding: 8px 14px; font-size: 12.5px;"
+                        onclick="window.removeProfilePhoto()"
+                      >
+                        🗑️ Remove Photo
+                      </button>
+                    ` : ''}
+
                     <span style="font-size: 12px; color: var(--text-muted);">
-                      Select any photo from your device
+                      JPG, PNG, WebP up to 5MB
                     </span>
                   </div>
 
@@ -218,61 +259,35 @@ export function renderUserProfile() {
                 </div>
               </div>
 
-              <!-- Preset Avatars -->
-              <div style="margin-top: 6px;">
-                <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 8px;">
-                  Or choose a preset traveler avatar:
-                </span>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                  ${PRESET_AVATARS.map(avatar => `
-                    <img 
-                      src="${avatar}" 
-                      alt="Preset" 
-                      style="width: 44px; height: 44px; border-radius: 50%; cursor: pointer; object-fit: cover; border: ${user.photoUrl === avatar ? '3px solid var(--accent-orange)' : '2px solid transparent'}; transition: all 0.2s;"
-                      onclick="window.selectProfileAvatar('${avatar}')" 
-                    />
-                  `).join('')}
-                </div>
-              </div>
-
-              <!-- Hosted Image URL Field (populated automatically) -->
-              <div>
-                <label style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">
-                  Image URL (Auto-updated when uploaded to Cloudinary):
-                </label>
-                <input 
-                  type="url" 
-                  class="form-input" 
-                  id="editPhotoUrl" 
-                  value="${user.photoUrl}" 
-                  placeholder="https://res.cloudinary.com/... or paste custom image link" 
-                  style="font-size: 12.5px; padding: 8px 12px; width: 100%;"
-                  oninput="window.handleManualUrlInput(this.value)"
-                />
-              </div>
+              <!-- Hidden Hosted Image URL Field (populated automatically on upload) -->
+              <input 
+                type="hidden" 
+                id="editPhotoUrl" 
+                value="${user.photoUrl || ''}" 
+              />
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
-                <label class="form-label">Display Name</label>
-                <input type="text" class="form-input" id="editName" value="${user.name}" required />
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" id="editName" value="${user.name || ''}" placeholder="e.g. Harsh Kumar" required />
               </div>
 
               <div class="form-group">
                 <label class="form-label">Phone Number</label>
-                <input type="tel" class="form-input" id="editPhone" value="${user.phone || ''}" required />
+                <input type="tel" class="form-input" id="editPhone" value="${user.phone || ''}" placeholder="e.g. +91 9876543210" />
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
                 <label class="form-label">Email Address</label>
-                <input type="email" class="form-input" id="editEmail" value="${user.email}" required />
+                <input type="email" class="form-input" id="editEmail" value="${user.email || ''}" placeholder="yourname@gmail.com" required />
               </div>
 
               <div class="form-group">
                 <label class="form-label">Home City & Country</label>
-                <input type="text" class="form-input" id="editHomeCity" value="${user.homeCity || 'San Francisco, CA'}" />
+                <input type="text" class="form-input" id="editHomeCity" value="${user.homeCity || ''}" placeholder="e.g. Agra, India" />
               </div>
             </div>
 

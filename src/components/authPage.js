@@ -47,15 +47,8 @@ export function renderAuthPage() {
         </div>
 
         ${authPageTab === 'login' ? `
-          <!-- Default Credentials Banner (user / user) -->
-          <div class="auth-default-credential-pill" onclick="window.fillDefaultCredentials()" title="Click to auto-fill default user credentials">
-            <span class="cred-pill-badge">DEFAULT LOGIN</span>
-            <span class="cred-pill-text">Username: <strong>user</strong> &nbsp;•&nbsp; Password: <strong>user</strong></span>
-            <span class="cred-pill-action">Auto-fill ⚡</span>
-          </div>
-
-          <!-- Fast Google Sign-in -->
-          <button type="button" class="auth-google-btn" onclick="window.handleGoogleLogin()">
+          <!-- Continue with Google (Opens clean custom Gmail popup) -->
+          <button type="button" class="auth-google-btn" onclick="window.openGoogleLoginModal()">
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
               <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
@@ -69,7 +62,7 @@ export function renderAuthPage() {
             <span>or sign in with credentials</span>
           </div>
 
-          <!-- Sign In Form with user / user as default -->
+          <!-- Sign In Form -->
           <form id="authPageLoginForm" onsubmit="window.handlePageAuthSubmit(event)">
             <div class="form-group">
               <label class="form-label" for="authLoginUser">Username or Email</label>
@@ -81,9 +74,9 @@ export function renderAuthPage() {
                   type="text" 
                   class="form-input" 
                   id="authLoginUser" 
-                  value="user" 
-                  placeholder="Enter 'user' or email" 
+                  placeholder="Enter your email or username" 
                   required 
+                  autocomplete="username"
                 />
               </div>
             </div>
@@ -98,9 +91,9 @@ export function renderAuthPage() {
                   type="password" 
                   class="form-input" 
                   id="authLoginPassword" 
-                  value="user" 
-                  placeholder="Enter 'user' or password" 
+                  placeholder="Enter your password" 
                   required 
+                  autocomplete="current-password"
                 />
               </div>
             </div>
@@ -110,11 +103,11 @@ export function renderAuthPage() {
                 <input type="checkbox" checked />
                 <span>Remember me</span>
               </label>
-              <a href="javascript:void(0)" class="auth-forgot-link" onclick="window.fillDefaultCredentials()">Use Default (user/user)</a>
+              <a href="javascript:void(0)" class="auth-forgot-link" onclick="window.switchAuthPageTab('register')">Need an account? Sign up</a>
             </div>
 
             <button type="submit" class="auth-submit-btn">
-              <span>Sign In as User</span>
+              <span>Sign In</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
               </svg>
@@ -129,17 +122,17 @@ export function renderAuthPage() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
-                <input type="text" class="form-input" id="authRegFullName" placeholder="e.g. User" value="User" required />
+                <input type="text" class="form-input" id="authRegFullName" placeholder="e.g. Harsh Kumar" required autocomplete="name" />
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Username / Email</label>
+              <label class="form-label">Email Address</label>
               <div class="input-icon-group">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                 </svg>
-                <input type="text" class="form-input" id="authRegEmail" placeholder="user or user@example.com" value="user@traveltales.com" required />
+                <input type="email" class="form-input" id="authRegEmail" placeholder="yourname@gmail.com" required autocomplete="email" />
               </div>
             </div>
 
@@ -149,17 +142,13 @@ export function renderAuthPage() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
-                <input type="password" class="form-input" id="authRegPassword" placeholder="Enter password (default: user)" value="user" required />
+                <input type="password" class="form-input" id="authRegPassword" placeholder="Create a strong password (min 4 chars)" required autocomplete="new-password" />
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Preferred Home City</label>
-              <select class="form-input" id="authRegCity">
-                <option value="Agra, India" selected>Agra, Uttar Pradesh</option>
-                <option value="Mathura, India">Mathura, Uttar Pradesh</option>
-                <option value="Vrindavan, India">Vrindavan, Uttar Pradesh</option>
-              </select>
+              <label class="form-label">Home City</label>
+              <input type="text" class="form-input" id="authRegCity" placeholder="e.g. Agra, India" />
             </div>
 
             <button type="submit" class="auth-submit-btn">

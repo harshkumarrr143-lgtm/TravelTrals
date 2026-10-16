@@ -14,6 +14,7 @@ import { renderAttractionModal, initLeafletMapForAttraction } from './components
 import { renderBookingModal, setBookingAttraction, triggerSuccessConfetti, updateBookingField, getBookingState } from './components/bookingModal.js';
 import { renderAuthModal, setAuthModalState } from './components/authModal.js';
 import { renderAuthPage, setAuthPageTab } from './components/authPage.js';
+import { renderGoogleLoginModal } from './components/googleLoginModal.js';
 import { requestBrowserLocation, setPresetLocation } from './services/locationService.js';
 import { renderUserProfile, setProfileTab } from './components/userProfile.js';
 import { renderTripPlanner, setPlannerTool } from './components/tripPlanner.js';
@@ -671,33 +672,81 @@ window.switchLoginMethod = function(method) {
   document.getElementById('authModalOverlay')?.classList.add('open');
 };
 
-window.handleGoogleLogin = function() {
-  storage.loginWithGoogle();
+// Custom Google Login Modal Open / Close / Submit
+window.openGoogleLoginModal = function() {
   window.closeAuthModal();
+  let container = document.getElementById('googleModalContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'googleModalContainer';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = renderGoogleLoginModal();
+  setTimeout(() => {
+    document.getElementById('googleInputEmail')?.focus();
+  }, 100);
+};
+
+window.closeGoogleLoginModal = function() {
+  const container = document.getElementById('googleModalContainer');
+  if (container) container.innerHTML = '';
+};
+
+window.handleCustomGoogleSubmit = async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('googleInputEmail')?.value;
+  const name = document.getElementById('googleInputName')?.value;
+  if (!email) return;
+
+  const user = storage.loginWithGoogle(email, name);
+  
+  // Save user profile directly to Cloud Firestore
+  try {
+    await saveUserProfileToFirestore(user.id, user);
+  } catch (err) {
+    console.warn('Firestore sync note:', err);
+  }
+
+  window.closeGoogleLoginModal();
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
+  showToast(`Welcome, ${user.name}! Signed in with Google 🚀`, '✨');
 };
 
-window.handleAuthSubmit = function(e) {
+window.handleGoogleLogin = function() {
+  window.openGoogleLoginModal();
+};
+
+window.handleAuthSubmit = async function(e) {
   e.preventDefault();
   const phone = document.getElementById('authPhone')?.value;
   const email = document.getElementById('authEmail')?.value;
   const pass = document.getElementById('authPassword')?.value || document.getElementById('authPhonePass')?.value;
   const regName = document.getElementById('authRegName')?.value;
 
+  let user = null;
   if (regName) {
-    storage.register({ name: regName, email: email, phone: phone });
+    user = storage.register({ name: regName, email: email, phone: phone, password: pass });
   } else if (phone) {
-    storage.loginWithPhone(phone, pass);
+    user = storage.loginWithPhone(phone, pass);
   } else if (email) {
-    storage.loginWithEmail(email, pass);
+    user = storage.loginWithEmail(email, pass);
+  }
+
+  if (user) {
+    try {
+      await saveUserProfileToFirestore(user.id, user);
+    } catch (err) {
+      console.warn('Firestore sync note:', err);
+    }
   }
 
   window.closeAuthModal();
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
+  showToast(`Welcome, ${user ? user.name : 'Traveler'}! ✨`, '🎉');
 };
 
 // --- Full Page Login & Registration Handlers ---
@@ -706,44 +755,60 @@ window.switchAuthPageTab = function(tab) {
   renderApp();
 };
 
-window.fillDefaultCredentials = function() {
-  const userInp = document.getElementById('authLoginUser');
-  const passInp = document.getElementById('authLoginPassword');
-  if (userInp) userInp.value = 'user';
-  if (passInp) passInp.value = storage.getPassword();
-};
-
-window.handlePageAuthSubmit = function(e) {
+window.handlePageAuthSubmit = async function(e) {
   e.preventDefault();
-  const user = document.getElementById('authLoginUser')?.value || 'user';
-  const pass = document.getElementById('authLoginPassword')?.value || 'user';
-  const expectedPassword = storage.getPassword();
+  const userInp = document.getElementById('authLoginUser')?.value;
+  const pass = document.getElementById('authLoginPassword')?.value;
 
-  if (pass !== expectedPassword && pass !== 'user') {
-    showToast('Incorrect password. Please try again.', '⚠️');
-    const alertEl = document.getElementById('authLoginError');
-    if (alertEl) {
-      alertEl.textContent = 'Incorrect password. Please enter your updated password.';
-      alertEl.style.display = 'block';
-    }
+  if (!userInp || !pass) {
+    showToast('Please enter both username/email and password.', '⚠️');
     return;
   }
 
-  storage.loginWithEmail(user, pass);
+  const expectedPassword = storage.getPassword();
+  if (expectedPassword && pass !== expectedPassword) {
+    showToast('Incorrect password. Please try again.', '⚠️');
+    return;
+  }
+
+  const user = storage.loginWithEmail(userInp, pass);
+  try {
+    await saveUserProfileToFirestore(user.id, user);
+  } catch (err) {
+    console.warn('Firestore sync note:', err);
+  }
+
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
+  showToast(`Welcome back, ${user.name}! 🌟`, '👋');
 };
 
-window.handlePageRegisterSubmit = function(e) {
+window.handlePageRegisterSubmit = async function(e) {
   e.preventDefault();
-  const name = document.getElementById('authRegFullName')?.value || 'User';
-  const email = document.getElementById('authRegEmail')?.value || 'user@traveltales.com';
-  const city = document.getElementById('authRegCity')?.value || 'Agra, India';
-  storage.register({ name, email, homeCity: city });
+  const name = document.getElementById('authRegFullName')?.value;
+  const email = document.getElementById('authRegEmail')?.value;
+  const pass = document.getElementById('authRegPassword')?.value;
+  const city = document.getElementById('authRegCity')?.value || '';
+
+  if (!name || !email || !pass) {
+    showToast('Please fill in all required fields.', '⚠️');
+    return;
+  }
+
+  const user = storage.register({ name, email, password: pass, homeCity: city });
+  
+  // Persist directly to Cloud Firestore database
+  try {
+    await saveUserProfileToFirestore(user.id, user);
+  } catch (err) {
+    console.warn('Firestore sync note:', err);
+  }
+
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
+  showToast(`Account created! Welcome, ${user.name} 🎉`, '✨');
 };
 
 // --- Location-Based Attractions Handlers ---
@@ -911,20 +976,35 @@ window.handleSaveProfile = async function(e) {
   const updatedUser = storage.updateProfile(profileData);
 
   // 2. Persist to Cloud Firestore (collection: "users", doc: user.id)
-  const firestoreResult = await saveUserProfileToFirestore(updatedUser.id || 'usr_alex_01', updatedUser);
+  let firestoreResult = { syncedWithFirestore: false };
+  try {
+    firestoreResult = await saveUserProfileToFirestore(updatedUser.id || ('usr_' + Date.now().toString(36)), updatedUser);
+  } catch (err) {
+    console.warn('Firestore sync note:', err);
+  }
 
   setProfileTab('trips');
   renderApp();
   triggerSuccessConfetti();
 
-  // Show status notification
   const msg = firestoreResult.syncedWithFirestore 
-    ? '🎉 Profile and Cloudinary photo saved to Cloud Firestore!' 
-    : '✅ Profile updated! (Cached locally. Connect live Firebase in Cloud Settings to sync to Firestore)';
+    ? '🎉 Profile and photo synced to Cloud Firestore!' 
+    : '✅ Profile updated successfully!';
   
-  setTimeout(() => {
-    alert(msg);
-  }, 150);
+  showToast(msg, '✨');
+};
+
+window.removeProfilePhoto = async function() {
+  const updated = storage.updateProfile({ photoUrl: '' });
+  try {
+    if (updated && updated.id) {
+      await saveUserProfileToFirestore(updated.id, updated);
+    }
+  } catch (e) {
+    console.warn(e);
+  }
+  renderApp();
+  showToast('Profile photo removed.', '🗑️');
 };
 
 // --- Change Password & Security Handlers ---

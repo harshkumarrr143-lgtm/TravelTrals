@@ -68,12 +68,12 @@ export function renderAuthModal() {
             </div>
           ` : ''}
 
-          <!-- Google 1-Click Fast Sign-In -->
+          <!-- Google Fast Sign-In (Opens custom Gmail modal) -->
           <button 
             type="button" 
             class="form-input" 
-            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; font-weight: 600; cursor: pointer; margin-bottom: 16px;"
-            onclick="window.handleGoogleLogin()"
+            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; font-weight: 600; cursor: pointer; margin-bottom: 16px; border: 1px solid #dadce0;"
+            onclick="window.openGoogleLoginModal()"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
@@ -95,36 +95,32 @@ export function renderAuthModal() {
             ${activeAuthTab === 'register' ? `
               <div class="form-group">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-input" id="authRegName" placeholder="e.g. Alex Rivera" required />
+                <input type="text" class="form-input" id="authRegName" placeholder="e.g. Harsh Kumar" required />
               </div>
             ` : ''}
 
             ${activeLoginMethod === 'phone' && activeAuthTab === 'login' ? `
               <div class="form-group">
                 <label class="form-label">Phone Number</label>
-                <input type="tel" class="form-input" id="authPhone" placeholder="+1 (555) 234-5678 or +91 9876543210" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Password or OTP</label>
-                <input type="password" class="form-input" id="authPhonePass" placeholder="Enter password / OTP" required />
-              </div>
-            ` : `
-              <div style="background: rgba(250, 130, 35, 0.12); border: 1px dashed var(--accent-orange); border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
-                <span>Default: <strong>user</strong> / <strong>user</strong></span>
-                <span style="color: var(--accent-orange); font-weight: 700;">Pre-filled ⚡</span>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Username or Email</label>
-                <input type="text" class="form-input" id="authEmail" placeholder="Enter 'user' or email" value="${activeAuthTab === 'login' ? 'user' : ''}" required />
+                <input type="tel" class="form-input" id="authPhone" placeholder="+91 9876543210" required />
               </div>
               <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" class="form-input" id="authPassword" placeholder="Enter 'user' or password" value="${activeAuthTab === 'login' ? 'user' : ''}" required />
+                <input type="password" class="form-input" id="authPhonePass" placeholder="Enter your password" required />
+              </div>
+            ` : `
+              <div class="form-group">
+                <label class="form-label">Username or Email</label>
+                <input type="text" class="form-input" id="authEmail" placeholder="Enter your email or username" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="authPassword" placeholder="Enter your password" required />
               </div>
             `}
 
             <button type="submit" class="btn-book-travel" style="width: 100%; justify-content: center; margin-top: 14px; font-size: 15px;">
-              ${activeAuthTab === 'login' ? 'Sign In to Account' : 'Create Account'}
+              ${activeAuthTab === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 
