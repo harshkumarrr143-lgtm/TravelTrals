@@ -39,6 +39,7 @@ import {
   syncUserDataWithFirestore
 } from './services/firestoreService.js';
 import { downloadItineraryPdf } from './services/pdfService.js';
+import { notificationService } from './services/notificationService.js';
 
 // Application State
 const appState = {
@@ -223,6 +224,147 @@ document.addEventListener('click', (e) => {
     if (window.closeSearchDropdown) {
       window.closeSearchDropdown();
     }
+  }
+
+  const notifWrapper = document.getElementById('notificationWrapper');
+  if (notifWrapper && !notifWrapper.contains(e.target)) {
+    if (window.closeNotificationDropdown) {
+      window.closeNotificationDropdown();
+    }
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// NOTIFICATION CENTER CONTROLLER
+// ══════════════════════════════════════════════════════════════════
+
+window.updateNotificationBadge = function() {
+  const dot = document.getElementById('topbarNotificationDot');
+  if (dot) {
+    const unread = notificationService.getUnreadCount();
+    dot.style.display = unread > 0 ? 'block' : 'none';
+  }
+};
+
+window.closeNotificationDropdown = function() {
+  const dd = document.getElementById('notificationDropdown');
+  if (dd) {
+    dd.style.display = 'none';
+  }
+};
+
+function renderNotificationDropdown() {
+  const dropdown = document.getElementById('notificationDropdown');
+  if (!dropdown) return;
+
+  const notifications = notificationService.getNotifications();
+  const unreadCount = notificationService.getUnreadCount();
+
+  dropdown.innerHTML = `
+    <div class="notification-dropdown-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 750; font-size: 14px; color: var(--text-main);">Notifications</span>
+        ${unreadCount > 0 ? `<span class="notif-unread-badge">${unreadCount} New</span>` : ''}
+      </div>
+      ${unreadCount > 0 ? `
+        <button class="notif-mark-read-btn" onclick="window.markAllNotificationsRead(event)">
+          ✓ Mark all read
+        </button>
+      ` : ''}
+    </div>
+
+    <div class="notification-items-list">
+      ${notifications.length === 0 ? `
+        <div class="notif-empty-state">
+          <div style="font-size: 32px; margin-bottom: 6px;">🔔</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">No notifications yet</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+            Your activity updates, itinerary saves, and booking alerts will appear here.
+          </div>
+        </div>
+      ` : notifications.map(n => `
+        <div class="notification-item ${n.read ? 'read' : 'unread'}" onclick="window.handleNotificationItemClick('${n.id}')">
+          <div class="notif-icon-box">${n.icon || '🔔'}</div>
+          <div class="notif-content-box">
+            <div class="notif-title-row">
+              <span class="notif-item-title">${n.title}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                ${!n.read ? `
+                  <button class="notif-item-check-btn" title="Mark as read" onclick="window.markSingleNotificationRead('${n.id}', event)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </button>
+                  <span class="notif-item-unread-dot" title="Unread notification"></span>
+                ` : ''}
+              </div>
+            </div>
+            <div class="notif-item-desc">${n.message}</div>
+            <div class="notif-item-time">${notificationService.formatTime(n.timestamp)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+window.markSingleNotificationRead = function(id, e) {
+  if (e) e.stopPropagation();
+  notificationService.markAsRead(id);
+  window.updateNotificationBadge();
+  renderNotificationDropdown();
+};
+
+window.toggleNotificationDropdown = function(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('notificationDropdown');
+  if (!dropdown) return;
+
+  const isOpen = dropdown.style.display !== 'none' && dropdown.style.display !== '';
+  if (isOpen) {
+    dropdown.style.display = 'none';
+  } else {
+    renderNotificationDropdown();
+    dropdown.style.display = 'flex';
+  }
+};
+
+window.markAllNotificationsRead = function(e) {
+  if (e) e.stopPropagation();
+  notificationService.markAllAsRead();
+  window.updateNotificationBadge();
+  renderNotificationDropdown();
+  showToast('All notifications marked as read', '✓');
+};
+
+window.handleNotificationItemClick = function(id) {
+  const notifs = notificationService.getNotifications();
+  const target = notifs.find(n => n.id === id);
+  notificationService.markAsRead(id);
+  window.updateNotificationBadge();
+  renderNotificationDropdown();
+
+  if (target) {
+    if (target.type === 'trip') {
+      window.navigateTo('schedule');
+      window.closeNotificationDropdown();
+    } else if (target.type === 'wishlist') {
+      window.navigateTo('favorites');
+      window.closeNotificationDropdown();
+    } else if (target.type === 'profile' || target.type === 'security') {
+      window.navigateTo('profile');
+      window.closeNotificationDropdown();
+    } else if (target.type === 'booking') {
+      window.navigateTo('tickets');
+      window.closeNotificationDropdown();
+    }
+  }
+};
+
+// Auto-sync dot whenever notification state updates
+notificationService.subscribe(() => {
+  if (window.updateNotificationBadge) {
+    window.updateNotificationBadge();
   }
 });
 
@@ -724,6 +866,12 @@ window.handleUnwish = function(attractionId, e) {
   }
 
   showToast(`Unwished ${name}`, '💔');
+  notificationService.addNotification({
+    title: 'Removed from Wishlist 🤍',
+    message: `"${name}" was removed from your saved destinations.`,
+    type: 'wishlist',
+    icon: '🤍'
+  });
 };
 
 // Filter Wishlist by City
@@ -772,8 +920,20 @@ window.handleToggleFavorite = function(attractionId, e) {
 
   if (isFav) {
     showToast(`Added ${name} to Wishlist ❤️`, '❤️');
+    notificationService.addNotification({
+      title: 'Added to Wishlist ❤️',
+      message: `"${name}" was saved to your favorite destinations.`,
+      type: 'wishlist',
+      icon: '❤️'
+    });
   } else {
     showToast(`Unwished ${name}`, '💔');
+    notificationService.addNotification({
+      title: 'Removed from Wishlist 🤍',
+      message: `"${name}" was removed from your saved destinations.`,
+      type: 'wishlist',
+      icon: '🤍'
+    });
   }
 };
 
@@ -907,6 +1067,14 @@ window.processPaymentExecution = function(attractionId, totalPaid, tierName, cur
     // Confetti celebration
     triggerSuccessConfetti();
 
+    // Trigger notification
+    notificationService.addNotification({
+      title: 'Pass Booking Confirmed! 🎟️',
+      message: `Your booking for ${att.name} (${tierName}, ${currency}${totalPaid}) is confirmed. Voucher ready!`,
+      type: 'booking',
+      icon: '🎟️'
+    });
+
     // Update tickets badge in sidebar
     const badge = document.getElementById('navTicketsBadge');
     if (badge) badge.textContent = storage.getBookings().length;
@@ -1007,6 +1175,12 @@ window.handleCustomGoogleSubmit = async function(e) {
   }
 
   window.closeGoogleLoginModal();
+  notificationService.addNotification({
+    title: 'Welcome Back! 👋',
+    message: `Signed in as ${user.name} via Google. Cloud sync active!`,
+    type: 'auth',
+    icon: '👋'
+  });
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
@@ -1047,6 +1221,16 @@ window.handleAuthSubmit = async function(e) {
   }
 
   window.closeAuthModal();
+  if (user) {
+    notificationService.addNotification({
+      title: regName ? 'Welcome to TravelTales! 🎉' : 'Signed In Successfully 👋',
+      message: regName 
+        ? `Welcome ${user.name}! Your traveler profile is now active.`
+        : `Welcome back, ${user.name}! Enjoy exploring curated wonders.`,
+      type: 'auth',
+      icon: regName ? '✨' : '👋'
+    });
+  }
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
@@ -1096,6 +1280,13 @@ window.handlePageAuthSubmit = async function(e) {
     console.warn('Firestore sync note:', err);
   }
 
+  notificationService.addNotification({
+    title: 'Welcome Back! 👋',
+    message: `Signed in as ${user.name}. Your trips and bookmarks are ready.`,
+    type: 'auth',
+    icon: '👋'
+  });
+
   appState.currentTab = 'dashboard';
   renderApp();
   triggerSuccessConfetti();
@@ -1122,6 +1313,13 @@ window.handlePageRegisterSubmit = async function(e) {
   } catch (err) {
     console.warn('Firestore sync note:', err);
   }
+
+  notificationService.addNotification({
+    title: 'Welcome to TravelTales! 🎉',
+    message: `Account created for ${user.name}. Start planning your dream trip!`,
+    type: 'auth',
+    icon: '✨'
+  });
 
   appState.currentTab = 'dashboard';
   renderApp();
@@ -1409,6 +1607,13 @@ window.handleLocalPhotoSelect = async function(event) {
     updateAvatarElementsOnPage(cloudinaryUrl);
     renderApp();
 
+    notificationService.addNotification({
+      title: 'Profile Photo Updated 📸',
+      message: 'Your new avatar is saved and active across TravelTales.',
+      type: 'profile',
+      icon: '📸'
+    });
+
     showToast('Profile photo successfully saved and active! 📸', '✨');
 
     // Record image in Firestore image collection
@@ -1423,6 +1628,12 @@ window.handleLocalPhotoSelect = async function(event) {
 
   } catch (error) {
     console.warn('Cloudinary upload note:', error);
+    notificationService.addNotification({
+      title: 'Profile Photo Updated 📸',
+      message: 'Photo saved locally to your profile.',
+      type: 'profile',
+      icon: '📸'
+    });
     renderApp();
     showToast('Photo saved locally to your profile! 📸', '✅');
   }
@@ -1459,6 +1670,13 @@ window.handleSaveProfile = async function(e) {
     console.warn('Firestore sync note:', err);
   }
 
+  notificationService.addNotification({
+    title: 'Profile Details Saved ✅',
+    message: 'Your personal info and preferences were updated.',
+    type: 'profile',
+    icon: '👤'
+  });
+
   setProfileTab('trips');
   renderApp();
   triggerSuccessConfetti();
@@ -1480,6 +1698,12 @@ window.removeProfilePhoto = async function() {
   } catch (e) {
     console.warn(e);
   }
+  notificationService.addNotification({
+    title: 'Profile Photo Removed 🗑️',
+    message: 'Avatar reset to default traveler image.',
+    type: 'profile',
+    icon: '👤'
+  });
   renderApp();
   showToast('Profile photo removed.', '🗑️');
 };
@@ -1609,6 +1833,13 @@ window.handleChangePassword = async function(e) {
       console.warn('Firestore password sync note:', e);
     }
   }
+
+  notificationService.addNotification({
+    title: 'Security: Password Updated 🔒',
+    message: 'Your account password was successfully updated and secured.',
+    type: 'security',
+    icon: '🔒'
+  });
 
   // Success
   showAlert(result.message + ' Your new password is now active and synced to Database.', true);
@@ -1856,6 +2087,13 @@ window.savePlannedTripToSchedule = async function() {
 
   showToast(syncMsg, '✨');
 
+  notificationService.addNotification({
+    title: 'Trip Saved to Schedule! 🗺️',
+    message: `${plannerState.days}-Day itinerary with ${plannerState.selectedAttractionIds.length} stops saved.`,
+    type: 'trip',
+    icon: '🗺️'
+  });
+
   // 4. Also automatically generate & download the itinerary PDF with photos
   try {
     downloadItineraryPdf(plannerState);
@@ -1899,6 +2137,12 @@ window.downloadTripItineraryPdf = async function() {
   try {
     const res = await downloadItineraryPdf(plannerState);
     triggerSuccessConfetti();
+    notificationService.addNotification({
+      title: 'Itinerary PDF Downloaded 📄',
+      message: `Generated "${res?.fileName || 'Itinerary.pdf'}" with high-res photos and timings.`,
+      type: 'trip',
+      icon: '📄'
+    });
     showToast(`✅ ${res.fileName} downloaded successfully!`, '🎉');
   } catch (err) {
     console.error('PDF generation error:', err);
@@ -1958,6 +2202,13 @@ window.deleteTripPlan = async function(tripId) {
     console.warn('Firestore delete error:', err);
   }
 
+  notificationService.addNotification({
+    title: 'Trip Removed from Schedule 🗑️',
+    message: 'A planned itinerary card was removed from your Schedule.',
+    type: 'trip',
+    icon: '🗑️'
+  });
+
   renderApp();
   showToast('Trip removed from Schedule and Database.', '🗑️');
 };
@@ -1989,6 +2240,12 @@ window.clearAllTripPlans = async function() {
   }
 
   storage.clearAllTrips();
+  notificationService.addNotification({
+    title: 'All Planned Trips Cleared 🗑️',
+    message: 'All itinerary cards were removed from your Schedule.',
+    type: 'trip',
+    icon: '🗑️'
+  });
   renderApp();
   showToast('All planned trip cards removed.', '🗑️');
 };
@@ -2009,6 +2266,12 @@ window.handleSaveExpense = function(e) {
   const splitAmong = splitRaw ? splitRaw.split(',').map(s => s.trim()) : [paidBy];
 
   storage.addBudgetItem({ description: desc, amount, paidBy, splitAmong });
+  notificationService.addNotification({
+    title: 'Expense Logged 💰',
+    message: `Added ₹${amount} for "${desc}" (Paid by ${paidBy}).`,
+    type: 'expense',
+    icon: '💰'
+  });
   window.updateMainContent();
 };
 

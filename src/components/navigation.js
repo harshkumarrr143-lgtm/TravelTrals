@@ -1,6 +1,7 @@
 // Navigation Component: Sidebar, Topbar, and Cascading Mega-Menu
 import { travelData } from '../data/travelData.js';
 import { storage } from '../services/storageService.js';
+import { notificationService } from '../services/notificationService.js';
 import traveltalesLogo from '../assets/traveltales-logo.png';
 
 export function renderSidebar(activeTab = 'dashboard', isCollapsed = false) {
@@ -191,12 +192,27 @@ export function renderTopbar() {
 
       <!-- Topbar Right: Notification, User Profile -->
       <div class="topbar-right">
-        <button class="icon-btn-circle" title="Notifications" onclick="window.showAlertModal({ title: 'Travel Alerts &amp; Updates', message: '1. Skip-the-line pass for Taj Mahal is ready! 🎟️\n2. Special evening Yamuna Aarti passes for Vrindavan are available now. ✨', icon: '🔔' })">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-          </svg>
-          <span class="notification-dot"></span>
-        </button>
+        <!-- Notification Center -->
+        <div class="notification-wrapper" id="notificationWrapper">
+          <button 
+            class="icon-btn-circle" 
+            id="notificationBellBtn" 
+            title="Activity Notifications & Alerts" 
+            onclick="window.toggleNotificationDropdown(event)"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+            <span 
+              class="notification-dot" 
+              id="topbarNotificationDot" 
+              style="${notificationService.getUnreadCount() > 0 ? 'display: block;' : 'display: none;'}"
+            ></span>
+          </button>
+
+          <!-- Notification Dropdown Panel -->
+          <div class="notification-dropdown" id="notificationDropdown" style="display: none;"></div>
+        </div>
 
         <!-- User Profile Pill or Sign In Button -->
         ${user && user.isLoggedIn ? `
