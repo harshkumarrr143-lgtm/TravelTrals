@@ -100,12 +100,6 @@ export function renderTripPlanner() {
         <button class="planner-nav-chip ${plannerState.activeTool === 'budget' ? 'active' : ''}" onclick="window.switchPlannerTool('budget')">
           💰 Budget-Sharing Calculator
         </button>
-        <button class="planner-nav-chip ${plannerState.activeTool === 'conflict' ? 'active' : ''}" onclick="window.switchPlannerTool('conflict')">
-          ⚠️ Timeline Conflict Checker
-        </button>
-        <button class="planner-nav-chip ${plannerState.activeTool === 'family' ? 'active' : ''}" onclick="window.switchPlannerTool('family')">
-          👨‍👩‍👧 Family-Friendly Routes
-        </button>
         <button class="planner-nav-chip ${plannerState.activeTool === 'catalogue' ? 'active' : ''}" onclick="window.switchPlannerTool('catalogue')">
           📖 Destination Catalogue
         </button>
@@ -113,8 +107,6 @@ export function renderTripPlanner() {
 
       ${plannerState.activeTool === 'planner' ? renderGoCityWizard() : ''}
       ${plannerState.activeTool === 'budget' ? renderBudgetCalculator(budgetData, budgetItems) : ''}
-      ${plannerState.activeTool === 'conflict' ? renderConflictChecker() : ''}
-      ${plannerState.activeTool === 'family' ? renderFamilyPlanner() : ''}
       ${plannerState.activeTool === 'catalogue' ? renderCatalogueView() : ''}
     </div>
   `;

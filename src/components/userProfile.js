@@ -193,13 +193,20 @@ export function renderUserProfile() {
               <!-- Local Upload & Avatar Preview Row -->
               <div class="profile-avatar-preview-row">
                 <div class="avatar-preview-wrapper" onclick="document.getElementById('localPhotoInput').click()" title="Click to choose a photo from your computer or gallery">
-                  ${user.photoUrl ? `
-                    <img id="avatarPreviewImg" src="${user.photoUrl}" alt="Avatar Preview" class="avatar-preview-img" />
-                  ` : `
-                    <div id="avatarPreviewImg" class="profile-main-avatar-initials" style="width: 72px; height: 72px; font-size: 26px;">
-                      ${user.name ? user.name.charAt(0).toUpperCase() : '📷'}
-                    </div>
-                  `}
+                  <img 
+                    id="avatarPreviewImg" 
+                    src="${user.photoUrl || ''}" 
+                    alt="Avatar Preview" 
+                    class="avatar-preview-img" 
+                    style="${user.photoUrl ? 'width: 72px; height: 72px; object-fit: cover; border-radius: 50%; display: block;' : 'display: none; width: 72px; height: 72px; object-fit: cover; border-radius: 50%;'}" 
+                  />
+                  <div 
+                    id="avatarFallbackInitials" 
+                    class="profile-main-avatar-initials" 
+                    style="width: 72px; height: 72px; font-size: 26px; ${user.photoUrl ? 'display: none;' : 'display: flex;'}"
+                  >
+                    ${user.name ? user.name.charAt(0).toUpperCase() : '📷'}
+                  </div>
                   <div class="avatar-preview-overlay">
                     <span>📷 Change</span>
                   </div>

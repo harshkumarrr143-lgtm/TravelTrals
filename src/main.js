@@ -897,17 +897,64 @@ window.switchProfileTab = function(tab) {
 };
 
 // Profile Photo, Local Gallery, Cloudinary & Firestore Handlers
+// Profile Photo, Local Gallery, Cloudinary & Firestore Handlers
+function updateAvatarElementsOnPage(url) {
+  const previewImg = document.getElementById('avatarPreviewImg');
+  const fallbackInitials = document.getElementById('avatarFallbackInitials');
+  const photoUrlInput = document.getElementById('editPhotoUrl');
+
+  if (url) {
+    if (previewImg) {
+      previewImg.src = url;
+      previewImg.style.display = 'block';
+    }
+    if (fallbackInitials) {
+      fallbackInitials.style.display = 'none';
+    }
+    if (photoUrlInput) {
+      photoUrlInput.value = url;
+    }
+    // Update header avatar if on profile page
+    const headerAvatar = document.getElementById('profileHeaderAvatar');
+    if (headerAvatar) headerAvatar.src = url;
+    // Update navigation topbar avatar
+    document.querySelectorAll('.user-avatar-img').forEach(img => { img.src = url; });
+  } else {
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+    }
+    if (fallbackInitials) {
+      fallbackInitials.style.display = 'flex';
+    }
+    if (photoUrlInput) {
+      photoUrlInput.value = '';
+    }
+    const headerAvatar = document.getElementById('profileHeaderAvatar');
+    if (headerAvatar) headerAvatar.style.display = 'none';
+  }
+}
+
 window.selectProfileAvatar = function(avatarUrl) {
-  const input = document.getElementById('editPhotoUrl');
-  if (input) input.value = avatarUrl;
-  const preview = document.getElementById('avatarPreviewImg');
-  if (preview) preview.src = avatarUrl;
+  updateAvatarElementsOnPage(avatarUrl);
+  const updated = storage.updateProfile({ photoUrl: avatarUrl });
+  try {
+    saveUserProfileToFirestore(updated.id, updated);
+  } catch (e) {
+    console.warn(e);
+  }
+  showToast('Avatar selected and saved!', '📸');
 };
 
 window.handleManualUrlInput = function(url) {
-  const preview = document.getElementById('avatarPreviewImg');
-  if (preview && url) {
-    preview.src = url;
+  if (url) {
+    updateAvatarElementsOnPage(url);
+    const updated = storage.updateProfile({ photoUrl: url });
+    try {
+      saveUserProfileToFirestore(updated.id, updated);
+    } catch (e) {
+      console.warn(e);
+    }
   }
 };
 
@@ -915,41 +962,42 @@ window.handleLocalPhotoSelect = async function(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  // Show immediate local preview
-  const previewImg = document.getElementById('avatarPreviewImg');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    if (previewImg) previewImg.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-
   const progressBox = document.getElementById('cloudinaryUploadProgress');
   const statusText = document.getElementById('cldStatusText');
   const percentText = document.getElementById('cldPercentText');
   const progressFill = document.getElementById('cldProgressFill');
   const detailMsg = document.getElementById('cldDetailMessage');
-  const photoUrlInput = document.getElementById('editPhotoUrl');
 
   if (progressBox) progressBox.style.display = 'block';
-
-  // Check if Cloudinary is configured
-  if (!isCloudinaryConfigured()) {
-    if (statusText) statusText.innerHTML = '⚠️ Cloudinary credentials required';
-    if (statusText) statusText.style.color = '#D97706';
-    if (detailMsg) {
-      detailMsg.innerHTML = 'Local preview set. Click <strong style="cursor:pointer; text-decoration:underline;" onclick="window.openCloudServicesModal()">Cloud Services Setup</strong> to enter your Cloud Name & Unsigned Preset to save directly on Cloudinary.';
-    }
-    return;
+  if (statusText) {
+    statusText.innerHTML = 'Reading image... 📷';
+    statusText.style.color = 'var(--primary)';
   }
+  if (progressFill) progressFill.style.width = '20%';
+  if (percentText) percentText.textContent = '20%';
 
-  // Upload to Cloudinary
+  // 1. Immediately read file locally and display preview
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const localDataUrl = e.target.result;
+    updateAvatarElementsOnPage(localDataUrl);
+
+    // Save immediately so photo is preserved instantly!
+    const updated = storage.updateProfile({ photoUrl: localDataUrl });
+    try {
+      await saveUserProfileToFirestore(updated.id, updated);
+    } catch (err) {
+      console.warn('Firestore photo save note:', err);
+    }
+  };
+  reader.readAsDataURL(file);
+
+  // 2. Upload directly to Cloudinary CDN for permanent cloud hosting
   try {
     if (statusText) {
       statusText.innerHTML = 'Uploading to Cloudinary CDN... ☁️';
       statusText.style.color = 'var(--primary)';
     }
-    if (progressFill) progressFill.style.width = '10%';
-    if (percentText) percentText.textContent = '10%';
 
     const uploadResult = await uploadImageToCloudinary(file, (percent) => {
       if (progressFill) progressFill.style.width = `${percent}%`;
@@ -958,8 +1006,11 @@ window.handleLocalPhotoSelect = async function(event) {
 
     // Cloudinary upload successful!
     const cloudinaryUrl = uploadResult.url;
-    if (photoUrlInput) photoUrlInput.value = cloudinaryUrl;
-    if (previewImg) previewImg.src = cloudinaryUrl;
+    updateAvatarElementsOnPage(cloudinaryUrl);
+
+    // Persist Cloudinary URL in user profile & database
+    const currentUser = storage.updateProfile({ photoUrl: cloudinaryUrl });
+    await saveUserProfileToFirestore(currentUser.id, currentUser);
 
     if (statusText) {
       statusText.innerHTML = '✅ Saved to Cloudinary CDN!';
@@ -971,35 +1022,47 @@ window.handleLocalPhotoSelect = async function(event) {
       detailMsg.innerHTML = `<span style="word-break: break-all; color: #059669;">Hosted at: ${cloudinaryUrl}</span>`;
     }
 
-    // Auto-hide the progress box after 2 seconds
+    showToast('Profile photo successfully saved to Cloud! 📸', '✨');
+
+    // Auto-hide progress indicator after 2 seconds
     setTimeout(() => {
       if (progressBox) {
         progressBox.style.transition = 'opacity 0.4s ease';
         progressBox.style.opacity = '0';
-        setTimeout(() => { progressBox.style.display = 'none'; progressBox.style.opacity = '1'; }, 420);
+        setTimeout(() => { 
+          progressBox.style.display = 'none'; 
+          progressBox.style.opacity = '1'; 
+        }, 420);
       }
     }, 2000);
 
-    // Record image in Firestore image history
-    const currentUser = storage.getUser() || { id: 'usr_alex_01' };
+    // Record image in Firestore image collection
     await recordImageInFirestore({
       url: cloudinaryUrl,
       publicId: uploadResult.publicId || '',
       userId: currentUser.id,
       fileName: file.name,
       bytes: uploadResult.bytes || file.size,
-      source: 'local_gallery_upload'
+      source: 'profile_photo_upload'
     });
 
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
+    console.warn('Cloudinary upload note:', error);
+    // Even if Cloudinary fails, image is already saved to local profile
     if (statusText) {
-      statusText.innerHTML = '❌ Upload failed';
-      statusText.style.color = '#EF4444';
+      statusText.innerHTML = '✅ Photo saved to profile!';
+      statusText.style.color = '#059669';
     }
+    if (progressFill) progressFill.style.width = '100%';
+    if (percentText) percentText.textContent = '100%';
     if (detailMsg) {
-      detailMsg.innerHTML = `${error.message || 'Check your Cloud Name and Unsigned Preset.'} <a href="javascript:void(0)" onclick="window.openCloudServicesModal()" style="text-decoration:underline; font-weight:600;">Check Settings</a>`;
+      detailMsg.innerHTML = `<span style="color: #64748B;">Saved to your account profile.</span>`;
     }
+    showToast('Profile photo updated successfully! 📸', '✨');
+
+    setTimeout(() => {
+      if (progressBox) progressBox.style.display = 'none';
+    }, 2500);
   }
 };
 
@@ -1009,7 +1072,7 @@ window.handleSaveProfile = async function(e) {
   const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Save Profile Changes';
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = 'Saving to Firestore... 🔥';
+    submitBtn.innerHTML = 'Saving to Database... 🔥';
   }
 
   const name = document.getElementById('editName')?.value;
@@ -1021,13 +1084,13 @@ window.handleSaveProfile = async function(e) {
 
   const profileData = { name, phone, email, homeCity, bio, photoUrl };
 
-  // 1. Update local state & LocalStorage cache
+  // 1. Update local state & User Registry
   const updatedUser = storage.updateProfile(profileData);
 
   // 2. Persist to Cloud Firestore (collection: "users", doc: user.id)
   let firestoreResult = { syncedWithFirestore: false };
   try {
-    firestoreResult = await saveUserProfileToFirestore(updatedUser.id || ('usr_' + Date.now().toString(36)), updatedUser);
+    firestoreResult = await saveUserProfileToFirestore(updatedUser.id, updatedUser);
   } catch (err) {
     console.warn('Firestore sync note:', err);
   }
@@ -1037,13 +1100,14 @@ window.handleSaveProfile = async function(e) {
   triggerSuccessConfetti();
 
   const msg = firestoreResult.syncedWithFirestore 
-    ? '🎉 Profile and photo synced to Cloud Firestore!' 
+    ? '🎉 Profile and photo synced to Cloud Firestore Database!' 
     : '✅ Profile updated successfully!';
   
   showToast(msg, '✨');
 };
 
 window.removeProfilePhoto = async function() {
+  updateAvatarElementsOnPage('');
   const updated = storage.updateProfile({ photoUrl: '' });
   try {
     if (updated && updated.id) {
