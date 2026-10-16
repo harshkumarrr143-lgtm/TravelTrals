@@ -176,11 +176,20 @@ export function renderTopbar() {
         <!-- User Profile Pill or Sign In Button -->
         ${user && user.isLoggedIn ? `
           <div class="user-profile-trigger" onclick="window.navigateTo('profile')">
-            ${user.photoUrl ? `
-              <img src="${user.photoUrl}" alt="${user.name}" class="user-avatar-img" />
-            ` : `
-              <div class="user-avatar-initials">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</div>
-            `}
+            <img 
+              src="${user.photoUrl || ''}" 
+              alt="${user.name}" 
+              class="user-avatar-img" 
+              id="topbarUserAvatarImg" 
+              style="${user.photoUrl ? 'width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block;' : 'display: none; width: 36px; height: 36px; border-radius: 50%; object-fit: cover;'}" 
+            />
+            <div 
+              class="user-avatar-initials" 
+              id="topbarUserAvatarInitials"
+              style="${user.photoUrl ? 'display: none;' : 'display: flex;'}"
+            >
+              ${user.name ? user.name.charAt(0).toUpperCase() : '👤'}
+            </div>
             <div class="user-info-text">
               <div class="user-display-name">${user.name}</div>
               <div class="user-role-label">Verified Traveler</div>

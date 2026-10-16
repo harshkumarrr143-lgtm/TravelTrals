@@ -171,11 +171,26 @@ class StorageService {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. Update session storage
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
+    // 1. Update session storage safely
+    try {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('LocalStorage save note for current user:', e);
+      if (updated.photoUrl && updated.photoUrl.length > 200000) {
+        // If avatar string is huge, trim it for localStorage cache while keeping it in memory
+        try {
+          const lightUser = { ...updated, photoUrl: '' };
+          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(lightUser));
+        } catch (e2) {}
+      }
+    }
 
     // 2. Persist in multi-user registry by stable ID
-    this.saveUserToRegistry(updated);
+    try {
+      this.saveUserToRegistry(updated);
+    } catch (e) {
+      console.warn('LocalStorage save note for registry:', e);
+    }
 
     this.notify('user:updated', updated);
     return updated;

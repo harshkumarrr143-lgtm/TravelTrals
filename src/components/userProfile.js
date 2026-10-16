@@ -54,11 +54,20 @@ export function renderUserProfile() {
       <!-- Profile Header Hero Card -->
       <div class="profile-hero-card">
         <div class="profile-avatar-wrapper">
-          ${user.photoUrl ? `
-            <img src="${user.photoUrl}" alt="${user.name}" class="profile-main-avatar" id="profileHeaderAvatar" />
-          ` : `
-            <div class="profile-main-avatar-initials">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</div>
-          `}
+          <img 
+            src="${user.photoUrl || ''}" 
+            alt="${user.name}" 
+            class="profile-main-avatar" 
+            id="profileHeaderAvatar" 
+            style="${user.photoUrl ? 'display: block;' : 'display: none;'}" 
+          />
+          <div 
+            class="profile-main-avatar-initials" 
+            id="profileHeaderAvatarInitials" 
+            style="${user.photoUrl ? 'display: none;' : 'display: flex;'}"
+          >
+            ${user.name ? user.name.charAt(0).toUpperCase() : '👤'}
+          </div>
           <button class="avatar-edit-overlay" onclick="window.switchProfileTab('edit')" title="Upload / Change Profile Photo">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>

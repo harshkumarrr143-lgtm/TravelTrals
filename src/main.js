@@ -898,10 +898,56 @@ window.switchProfileTab = function(tab) {
 
 // Profile Photo, Local Gallery, Cloudinary & Firestore Handlers
 // Profile Photo, Local Gallery, Cloudinary & Firestore Handlers
+function compressImageForAvatar(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(null);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => resolve(e.target.result);
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 240;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            if (w > maxDim) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            }
+          } else {
+            if (h > maxDim) {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressed);
+        } catch (err) {
+          resolve(e.target.result);
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function updateAvatarElementsOnPage(url) {
   const previewImg = document.getElementById('avatarPreviewImg');
   const fallbackInitials = document.getElementById('avatarFallbackInitials');
   const photoUrlInput = document.getElementById('editPhotoUrl');
+
+  const topbarImg = document.getElementById('topbarUserAvatarImg');
+  const topbarInitials = document.getElementById('topbarUserAvatarInitials');
+
+  const headerImg = document.getElementById('profileHeaderAvatar');
+  const headerInitials = document.getElementById('profileHeaderAvatarInitials');
 
   if (url) {
     if (previewImg) {
@@ -914,11 +960,27 @@ function updateAvatarElementsOnPage(url) {
     if (photoUrlInput) {
       photoUrlInput.value = url;
     }
-    // Update header avatar if on profile page
-    const headerAvatar = document.getElementById('profileHeaderAvatar');
-    if (headerAvatar) headerAvatar.src = url;
-    // Update navigation topbar avatar
-    document.querySelectorAll('.user-avatar-img').forEach(img => { img.src = url; });
+    if (topbarImg) {
+      topbarImg.src = url;
+      topbarImg.style.display = 'block';
+    }
+    if (topbarInitials) {
+      topbarInitials.style.display = 'none';
+    }
+    if (headerImg) {
+      headerImg.src = url;
+      headerImg.style.display = 'block';
+    }
+    if (headerInitials) {
+      headerInitials.style.display = 'none';
+    }
+    document.querySelectorAll('.user-avatar-img').forEach(img => {
+      img.src = url;
+      img.style.display = 'block';
+    });
+    document.querySelectorAll('.user-avatar-initials, .profile-main-avatar-initials').forEach(el => {
+      el.style.display = 'none';
+    });
   } else {
     if (previewImg) {
       previewImg.src = '';
@@ -930,8 +992,26 @@ function updateAvatarElementsOnPage(url) {
     if (photoUrlInput) {
       photoUrlInput.value = '';
     }
-    const headerAvatar = document.getElementById('profileHeaderAvatar');
-    if (headerAvatar) headerAvatar.style.display = 'none';
+    if (topbarImg) {
+      topbarImg.src = '';
+      topbarImg.style.display = 'none';
+    }
+    if (topbarInitials) {
+      topbarInitials.style.display = 'flex';
+    }
+    if (headerImg) {
+      headerImg.src = '';
+      headerImg.style.display = 'none';
+    }
+    if (headerInitials) {
+      headerInitials.style.display = 'flex';
+    }
+    document.querySelectorAll('.user-avatar-img').forEach(img => {
+      img.style.display = 'none';
+    });
+    document.querySelectorAll('.user-avatar-initials, .profile-main-avatar-initials').forEach(el => {
+      el.style.display = 'flex';
+    });
   }
 }
 
@@ -970,29 +1050,27 @@ window.handleLocalPhotoSelect = async function(event) {
 
   if (progressBox) progressBox.style.display = 'block';
   if (statusText) {
-    statusText.innerHTML = 'Reading image... 📷';
+    statusText.innerHTML = 'Processing photo... 📷';
     statusText.style.color = 'var(--primary)';
   }
   if (progressFill) progressFill.style.width = '20%';
   if (percentText) percentText.textContent = '20%';
 
-  // 1. Immediately read file locally and display preview
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const localDataUrl = e.target.result;
+  // 1. Immediately compress image on canvas to lightweight avatar data URL (~15KB)
+  const localDataUrl = await compressImageForAvatar(file);
+  if (localDataUrl) {
     updateAvatarElementsOnPage(localDataUrl);
 
-    // Save immediately so photo is preserved instantly!
+    // Save immediately so photo persists instantly even before upload or offline
     const updated = storage.updateProfile({ photoUrl: localDataUrl });
     try {
-      await saveUserProfileToFirestore(updated.id, updated);
+      saveUserProfileToFirestore(updated.id, updated);
     } catch (err) {
       console.warn('Firestore photo save note:', err);
     }
-  };
-  reader.readAsDataURL(file);
+  }
 
-  // 2. Upload directly to Cloudinary CDN for permanent cloud hosting
+  // 2. Upload original file to Cloudinary CDN for permanent cloud hosting
   try {
     if (statusText) {
       statusText.innerHTML = 'Uploading to Cloudinary CDN... ☁️';
@@ -1022,7 +1100,7 @@ window.handleLocalPhotoSelect = async function(event) {
       detailMsg.innerHTML = `<span style="word-break: break-all; color: #059669;">Hosted at: ${cloudinaryUrl}</span>`;
     }
 
-    showToast('Profile photo successfully saved to Cloud! 📸', '✨');
+    showToast('Profile photo successfully saved! 📸', '✨');
 
     // Auto-hide progress indicator after 2 seconds
     setTimeout(() => {
@@ -1048,7 +1126,7 @@ window.handleLocalPhotoSelect = async function(event) {
 
   } catch (error) {
     console.warn('Cloudinary upload note:', error);
-    // Even if Cloudinary fails, image is already saved to local profile
+    // Even if Cloudinary is offline or error, image is safely saved to local profile
     if (statusText) {
       statusText.innerHTML = '✅ Photo saved to profile!';
       statusText.style.color = '#059669';
@@ -1056,7 +1134,7 @@ window.handleLocalPhotoSelect = async function(event) {
     if (progressFill) progressFill.style.width = '100%';
     if (percentText) percentText.textContent = '100%';
     if (detailMsg) {
-      detailMsg.innerHTML = `<span style="color: #64748B;">Saved to your account profile.</span>`;
+      detailMsg.innerHTML = `<span style="color: #64748B;">Saved locally to your account.</span>`;
     }
     showToast('Profile photo updated successfully! 📸', '✨');
 
