@@ -17,7 +17,7 @@ import { renderAuthPage, setAuthPageTab } from './components/authPage.js';
 import { renderGoogleLoginModal } from './components/googleLoginModal.js';
 import { requestBrowserLocation, setPresetLocation } from './services/locationService.js';
 import { renderUserProfile, setProfileTab } from './components/userProfile.js';
-import { renderTripPlanner, setPlannerTool } from './components/tripPlanner.js';
+import { renderTripPlanner, setPlannerTool, plannerState } from './components/tripPlanner.js';
 import { renderPresentationView, openPresentationForTrip, nextSlide, prevSlide } from './components/presentationView.js';
 import { renderFirebaseModal } from './components/firebaseModal.js';
 import { renderCloudServicesModal } from './components/cloudServicesModal.js';
@@ -30,7 +30,10 @@ import {
 } from './services/cloudinaryService.js';
 import { 
   saveUserProfileToFirestore, 
-  recordImageInFirestore 
+  recordImageInFirestore,
+  saveTripToFirestore,
+  deleteTripFromFirestore,
+  getUserTripsFromFirestore
 } from './services/firestoreService.js';
 
 // Application State
@@ -1172,7 +1175,18 @@ window.openNewTripModal = function() {
   window.updateMainContent();
 };
 
-// Trip Planner Suite Handlers
+// ══════════════════════════════════════════════════════════════════
+// GOCITY STEP-BY-STEP PLANNER & SCHEDULE DB INTEGRATION
+// ══════════════════════════════════════════════════════════════════
+
+window.startNewGoCityPlan = function() {
+  appState.currentTab = 'planner';
+  plannerState.step = 1;
+  setPlannerTool('planner');
+  renderApp();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
 window.switchPlannerTool = function(tool) {
   setPlannerTool(tool);
   window.updateMainContent();
@@ -1182,6 +1196,223 @@ window.openTripTool = function(tool) {
   appState.currentTab = 'planner';
   setPlannerTool(tool);
   renderApp();
+};
+
+window.setPlannerStep = function(step) {
+  plannerState.step = Math.max(1, Math.min(4, step));
+  window.updateMainContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.plannerNextStep = function() {
+  if (plannerState.step === 2 && plannerState.selectedAttractionIds.length < 2) {
+    showToast('Please select at least 2 attractions for your journey.', '⚠️');
+    return;
+  }
+  plannerState.step = Math.min(4, plannerState.step + 1);
+  window.updateMainContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.plannerPrevStep = function() {
+  plannerState.step = Math.max(1, plannerState.step - 1);
+  window.updateMainContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.updatePlannerCounter = function(type, delta) {
+  if (type === 'adults') {
+    plannerState.adults = Math.max(1, Math.min(10, plannerState.adults + delta));
+  } else if (type === 'children') {
+    plannerState.children = Math.max(0, Math.min(10, plannerState.children + delta));
+  }
+  window.updateMainContent();
+};
+
+window.setPlannerDays = function(days) {
+  plannerState.days = Number(days);
+  window.updateMainContent();
+};
+
+window.setPlannerStartDate = function(val) {
+  if (val) {
+    plannerState.startDate = val;
+    window.updateMainContent();
+  }
+};
+
+window.setPlannerCategoryFilter = function(cat) {
+  plannerState.categoryFilter = cat;
+  window.updateMainContent();
+};
+
+window.togglePlannerAttraction = function(attId) {
+  const index = plannerState.selectedAttractionIds.indexOf(attId);
+  if (index > -1) {
+    // Remove if more than 1
+    if (plannerState.selectedAttractionIds.length <= 1) {
+      showToast('Keep at least 1 landmark in your itinerary.', 'ℹ️');
+      return;
+    }
+    plannerState.selectedAttractionIds.splice(index, 1);
+  } else {
+    if (plannerState.selectedAttractionIds.length >= 8) {
+      showToast('Maximum 8 attractions allowed for optimal pacing.', '⚠️');
+      return;
+    }
+    plannerState.selectedAttractionIds.push(attId);
+  }
+  window.updateMainContent();
+};
+
+window.setPlannerStartingPoint = function(hubId) {
+  plannerState.startingPoint = hubId;
+  window.updateMainContent();
+};
+
+window.setPlannerPacing = function(pacing) {
+  plannerState.pacing = pacing;
+  window.updateMainContent();
+};
+
+window.setPlannerItineraryDay = function(dayNum) {
+  plannerState.activeItineraryDay = dayNum;
+  window.updateMainContent();
+};
+
+window.generateAndShowItinerary = function() {
+  plannerState.step = 4;
+  plannerState.activeItineraryDay = 1;
+  triggerSuccessConfetti();
+  window.updateMainContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Save Planned Trip to Schedule and Cloud Firestore Database
+window.savePlannedTripToSchedule = async function() {
+  const user = storage.getUser() || { id: 'usr_guest_' + Date.now().toString(36) };
+  const firstAtt = travelData.attractions.find(a => a.id === plannerState.selectedAttractionIds[0]);
+
+  // Compute date range
+  const startDate = plannerState.startDate || new Date().toISOString().split('T')[0];
+  const parts = startDate.split('-');
+  const startObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  const endObj = new Date(startObj);
+  endObj.setDate(startObj.getDate() + (plannerState.days - 1));
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateRangeStr = `${startObj.getDate()} ${months[startObj.getMonth()]} - ${endObj.getDate()} ${months[endObj.getMonth()]}`;
+
+  const hubLabels = {
+    'taj-ganj': 'Taj Ganj & Heritage',
+    'agra-cantt': 'Agra Gateway',
+    'vrindavan-center': 'Sacred Vrindavan',
+    'mathura-junction': 'Holy Mathura & Ghats'
+  };
+
+  const hubName = hubLabels[plannerState.startingPoint] || 'Heritage Circuit';
+
+  const newTrip = {
+    id: 'trip_' + Date.now().toString(36),
+    title: `${plannerState.days}-Day ${hubName} Tour`,
+    location: 'Agra, Mathura & Vrindavan',
+    dateRange: dateRangeStr,
+    startDate: startDate,
+    endDate: endObj.toISOString().split('T')[0],
+    status: 'Confirmed',
+    image: firstAtt?.image || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=400&q=80',
+    attendees: plannerState.adults + plannerState.children,
+    adults: plannerState.adults,
+    children: plannerState.children,
+    days: plannerState.days,
+    startingPoint: plannerState.startingPoint,
+    pacing: plannerState.pacing,
+    attractionIds: [...plannerState.selectedAttractionIds],
+    attractionCount: plannerState.selectedAttractionIds.length,
+    highlight: `Curated ${plannerState.days}-day tour with ${plannerState.selectedAttractionIds.length} stops and priority fast passes.`,
+    budgetTotal: (plannerState.days * 450) + (plannerState.selectedAttractionIds.length * 150),
+    budgetPerPerson: Math.round(((plannerState.days * 450) + (plannerState.selectedAttractionIds.length * 150)) / (plannerState.adults + plannerState.children)),
+    syncedWithDb: true,
+    createdAt: new Date().toISOString()
+  };
+
+  // 1. Save to LocalStorage trips
+  storage.addTrip(newTrip);
+
+  // 2. Persist to Cloud Firestore Database (collection: "trips")
+  let firestoreResult = { syncedWithFirestore: false };
+  try {
+    firestoreResult = await saveTripToFirestore(newTrip, user.id);
+  } catch (err) {
+    console.warn('Firestore sync note:', err);
+  }
+
+  // 3. Trigger celebration confetti and toast
+  triggerSuccessConfetti();
+
+  const syncMsg = firestoreResult.syncedWithFirestore
+    ? '🎉 Trip saved to My Schedule and synced to Cloud Firestore Database!'
+    : '🎉 Trip successfully saved to your Schedule!';
+
+  showToast(syncMsg, '✨');
+
+  // 4. Navigate to dashboard to showcase the updated "My Schedule" card
+  setTimeout(() => {
+    appState.currentTab = 'dashboard';
+    renderApp();
+    
+    // Smooth scroll to the Schedule card
+    const scheduleCard = document.getElementById('myScheduleCardContainer');
+    if (scheduleCard) {
+      scheduleCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scheduleCard.classList.add('highlight-pulse');
+      setTimeout(() => scheduleCard.classList.remove('highlight-pulse'), 2500);
+    }
+  }, 900);
+};
+
+// View Full Trip Itinerary
+window.viewTripItinerary = function(tripId) {
+  const trips = storage.getTrips();
+  const trip = trips.find(t => t.id === tripId);
+  if (!trip) return;
+
+  if (trip.attractionIds && trip.attractionIds.length > 0) {
+    plannerState.selectedAttractionIds = [...trip.attractionIds];
+    if (trip.days) plannerState.days = trip.days;
+    if (trip.adults) plannerState.adults = trip.adults;
+    if (trip.children !== undefined) plannerState.children = trip.children;
+    if (trip.startingPoint) plannerState.startingPoint = trip.startingPoint;
+    if (trip.startDate) plannerState.startDate = trip.startDate;
+    plannerState.step = 4;
+    plannerState.activeItineraryDay = 1;
+    setPlannerTool('planner');
+    appState.currentTab = 'planner';
+    renderApp();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    window.openTripPresentation(tripId);
+  }
+};
+
+// Delete Trip from Schedule & Database
+window.deleteTripPlan = async function(tripId) {
+  if (!confirm('Are you sure you want to remove this trip from your Schedule and Database?')) {
+    return;
+  }
+
+  // 1. Delete from storage
+  storage.deleteTrip(tripId);
+
+  // 2. Delete from Cloud Firestore
+  try {
+    await deleteTripFromFirestore(tripId);
+  } catch (err) {
+    console.warn('Firestore delete error:', err);
+  }
+
+  renderApp();
+  showToast('Trip removed from Schedule and Database.', '🗑️');
 };
 
 window.toggleAddExpenseForm = function() {

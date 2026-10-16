@@ -2,7 +2,7 @@
 // Initializes Firebase and synchronizes user profiles & uploaded media to Cloud Firestore
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, deleteDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseConfig, isFirebaseConnected } from './firebaseConfig.js';
 
 let appInstance = null;
@@ -110,3 +110,87 @@ export async function getUserProfileFromFirestore(userId) {
     return null;
   }
 }
+
+/**
+ * Saves a planned trip to Firestore (collection: "trips")
+ * @param {object} tripData - Full trip object (id, title, days, attractions, dateRange, etc.)
+ * @param {string} userId - Associated user ID
+ */
+export async function saveTripToFirestore(tripData, userId = 'guest') {
+  const db = getDb();
+  if (!db) {
+    return {
+      syncedWithFirestore: false,
+      message: 'Saved to local storage cache.'
+    };
+  }
+
+  try {
+    const tripId = tripData.id || `trip_${Date.now()}`;
+    const tripDocRef = doc(db, 'trips', tripId);
+    
+    // Clean any undefined fields before sending to Firestore
+    const cleanData = JSON.parse(JSON.stringify({
+      ...tripData,
+      id: tripId,
+      userId: userId || 'anonymous',
+      updatedAt: new Date().toISOString()
+    }));
+
+    await setDoc(tripDocRef, cleanData, { merge: true });
+
+    return {
+      syncedWithFirestore: true,
+      tripId,
+      message: 'Trip itinerary successfully synced to Cloud Firestore database!'
+    };
+  } catch (err) {
+    console.warn('Firestore saveTrip error:', err);
+    return {
+      syncedWithFirestore: false,
+      error: err.message
+    };
+  }
+}
+
+/**
+ * Fetches all saved trips for a user from Cloud Firestore
+ * @param {string} userId
+ */
+export async function getUserTripsFromFirestore(userId) {
+  const db = getDb();
+  if (!db || !userId) return [];
+
+  try {
+    const tripsCol = collection(db, 'trips');
+    const q = query(tripsCol, where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const trips = [];
+    querySnapshot.forEach((doc) => {
+      trips.push({ id: doc.id, ...doc.data() });
+    });
+    return trips;
+  } catch (err) {
+    console.warn('Firestore getUserTrips error:', err);
+    return [];
+  }
+}
+
+/**
+ * Deletes a trip from Firestore
+ * @param {string} tripId
+ */
+export async function deleteTripFromFirestore(tripId) {
+  const db = getDb();
+  if (!db || !tripId) return false;
+
+  try {
+    const tripDocRef = doc(db, 'trips', tripId);
+    await deleteDoc(tripDocRef);
+    return true;
+  } catch (err) {
+    console.warn('Firestore deleteTrip error:', err);
+    return false;
+  }
+}
+

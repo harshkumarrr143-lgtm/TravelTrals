@@ -49,11 +49,7 @@ class StorageService {
   }
 
   init() {
-    // Initialize default user if not present
-    if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEFAULT_USER));
-    }
-    // Initialize default favorites
+    // Initialize default favorites if not present
     if (!localStorage.getItem(STORAGE_KEYS.FAVORITES)) {
       localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(['taj-mahal', 'prem-mandir', 'krishna-janmabhoomi']));
     }
