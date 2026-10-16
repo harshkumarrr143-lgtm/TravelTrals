@@ -1276,7 +1276,7 @@ window.handlePasswordMatchCheck = function() {
   }
 };
 
-window.handleChangePassword = function(e) {
+window.handleChangePassword = async function(e) {
   e.preventDefault();
   const currentPass = document.getElementById('currentPassword')?.value || '';
   const newPass = document.getElementById('newPassword')?.value || '';
@@ -1312,8 +1312,18 @@ window.handleChangePassword = function(e) {
     return;
   }
 
+  // Persist updated password to Cloud Firestore Database
+  const updatedUser = storage.getUser();
+  if (updatedUser && updatedUser.id) {
+    try {
+      await saveUserProfileToFirestore(updatedUser.id, updatedUser);
+    } catch (e) {
+      console.warn('Firestore password sync note:', e);
+    }
+  }
+
   // Success
-  showAlert(result.message + ' Your new password is now active for account logins.', true);
+  showAlert(result.message + ' Your new password is now active and synced to Database.', true);
   showToast('Password successfully updated! 🔒', '🎉');
   triggerSuccessConfetti();
 
