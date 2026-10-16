@@ -1,6 +1,7 @@
 // Navigation Component: Sidebar, Topbar, and Cascading Mega-Menu
 import { travelData } from '../data/travelData.js';
 import { storage } from '../services/storageService.js';
+import traveltalesLogo from '../assets/traveltales-logo.png';
 
 export function renderSidebar(activeTab = 'dashboard', isCollapsed = false) {
   const user = storage.getUser();
@@ -10,7 +11,12 @@ export function renderSidebar(activeTab = 'dashboard', isCollapsed = false) {
       <!-- Sidebar Header Row with Brand & Panel Closer Button -->
       <div class="sidebar-header-row">
         <div class="sidebar-logo" onclick="window.navigateTo('dashboard')" title="TravelTales Home">
-          <img src="./traveltales-logo.png" alt="TravelTales" class="sidebar-logo-img" />
+          <img 
+            src="${traveltalesLogo}" 
+            alt="TravelTales" 
+            class="sidebar-logo-img" 
+            onerror="this.onerror=null; this.src='./traveltales-logo.png';" 
+          />
         </div>
 
         <button class="sidebar-closer-btn" id="sidebarCollapseBtn" onclick="window.toggleSidebarCollapse()" title="${isCollapsed ? 'Expand Menu Panel' : 'Close / Collapse Menu Panel'}">

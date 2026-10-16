@@ -1,6 +1,8 @@
 // Authentication Page Component: Full-Page Login & Registration View
 // Default credentials: username: "user", password: "user"
 import { storage } from '../services/storageService.js';
+import siteIcon from '../assets/site-icon.png';
+import traveltalesLogo from '../assets/traveltales-logo.png';
 
 let authPageTab = 'login'; // 'login' or 'register'
 
@@ -16,8 +18,8 @@ export function renderAuthPage() {
       <div class="auth-page-card">
         <!-- Brand Header -->
         <div class="auth-page-brand">
-          <img src="./site-icon.png" alt="TravelTales Icon" class="auth-brand-icon" />
-          <img src="./traveltales-logo.png" alt="TravelTales Logo" class="auth-brand-logo" />
+          <img src="${siteIcon}" alt="TravelTales Icon" class="auth-brand-icon" onerror="this.onerror=null; this.src='./site-icon.png';" />
+          <img src="${traveltalesLogo}" alt="TravelTales Logo" class="auth-brand-logo" onerror="this.onerror=null; this.src='./traveltales-logo.png';" />
           <h2 class="auth-page-heading">
             ${authPageTab === 'login' ? 'Welcome Back, Traveler!' : 'Join TravelTales Today'}
           </h2>

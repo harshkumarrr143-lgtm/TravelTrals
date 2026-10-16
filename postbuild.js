@@ -1,5 +1,5 @@
 // Postbuild script for GitHub Pages compatibility
-// Ensures assets, index.html, and 404.html exist both in root and dist/
+// Ensures assets, index.html, 404.html, and all root-level public files exist in root
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,8 +11,9 @@ const rootDir = __dirname;
 const distDir = path.join(rootDir, 'dist');
 const distAssetsDir = path.join(distDir, 'assets');
 const rootAssetsDir = path.join(rootDir, 'assets');
+const publicDir = path.join(rootDir, 'public');
 
-// 1. Copy dist/index.html to root index.html
+// 1. Copy dist/index.html to root index.html and 404.html
 if (fs.existsSync(path.join(distDir, 'index.html'))) {
   const htmlContent = fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8');
   fs.writeFileSync(path.join(rootDir, 'index.html'), htmlContent, 'utf-8');
@@ -32,7 +33,20 @@ if (fs.existsSync(distAssetsDir)) {
   console.log(`✓ Copied ${files.length} asset files to root assets/`);
 }
 
-// 3. Ensure .nojekyll exists
+// 3. Copy public files (logos, icons, favicons, media) to root directory
+if (fs.existsSync(publicDir)) {
+  const publicFiles = fs.readdirSync(publicDir);
+  for (const file of publicFiles) {
+    const srcPath = path.join(publicDir, file);
+    const destPath = path.join(rootDir, file);
+    if (fs.statSync(srcPath).isFile()) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+  console.log(`✓ Copied ${publicFiles.length} public brand/media files to root`);
+}
+
+// 4. Ensure .nojekyll exists
 fs.writeFileSync(path.join(rootDir, '.nojekyll'), '', 'utf-8');
 if (fs.existsSync(distDir)) {
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '', 'utf-8');
