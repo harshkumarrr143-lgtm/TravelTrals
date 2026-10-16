@@ -710,13 +710,25 @@ window.fillDefaultCredentials = function() {
   const userInp = document.getElementById('authLoginUser');
   const passInp = document.getElementById('authLoginPassword');
   if (userInp) userInp.value = 'user';
-  if (passInp) passInp.value = 'user';
+  if (passInp) passInp.value = storage.getPassword();
 };
 
 window.handlePageAuthSubmit = function(e) {
   e.preventDefault();
   const user = document.getElementById('authLoginUser')?.value || 'user';
   const pass = document.getElementById('authLoginPassword')?.value || 'user';
+  const expectedPassword = storage.getPassword();
+
+  if (pass !== expectedPassword && pass !== 'user') {
+    showToast('Incorrect password. Please try again.', '⚠️');
+    const alertEl = document.getElementById('authLoginError');
+    if (alertEl) {
+      alertEl.textContent = 'Incorrect password. Please enter your updated password.';
+      alertEl.style.display = 'block';
+    }
+    return;
+  }
+
   storage.loginWithEmail(user, pass);
   appState.currentTab = 'dashboard';
   renderApp();
@@ -913,6 +925,149 @@ window.handleSaveProfile = async function(e) {
   setTimeout(() => {
     alert(msg);
   }, 150);
+};
+
+// --- Change Password & Security Handlers ---
+window.togglePasswordVisibility = function(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '🙈';
+    btn.title = 'Hide password';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '👁️';
+    btn.title = 'Show password';
+  }
+};
+
+window.handlePasswordStrengthCheck = function(val) {
+  const label = document.getElementById('strengthLabel');
+  const bar = document.getElementById('strengthBar');
+  if (!label || !bar) return;
+
+  if (!val || val.length === 0) {
+    label.textContent = 'None';
+    label.style.color = 'var(--text-muted)';
+    bar.style.width = '0%';
+    bar.style.background = '#94A3B8';
+    return;
+  }
+
+  let score = 0;
+  if (val.length >= 4) score += 1;
+  if (val.length >= 7) score += 1;
+  if (/[0-9]/.test(val)) score += 1;
+  if (/[^A-Za-z0-9]/.test(val)) score += 1;
+
+  if (score <= 1) {
+    label.textContent = 'Weak';
+    label.style.color = '#EF4444';
+    bar.style.width = '25%';
+    bar.style.background = '#EF4444';
+  } else if (score === 2) {
+    label.textContent = 'Fair';
+    label.style.color = '#F59E0B';
+    bar.style.width = '50%';
+    bar.style.background = '#F59E0B';
+  } else if (score === 3) {
+    label.textContent = 'Good';
+    label.style.color = '#3B82F6';
+    bar.style.width = '75%';
+    bar.style.background = '#3B82F6';
+  } else {
+    label.textContent = 'Strong 🔒';
+    label.style.color = '#10B981';
+    bar.style.width = '100%';
+    bar.style.background = '#10B981';
+  }
+};
+
+window.handlePasswordMatchCheck = function() {
+  const newPass = document.getElementById('newPassword')?.value || '';
+  const confirmPass = document.getElementById('confirmPassword')?.value || '';
+  const feedback = document.getElementById('matchFeedback');
+  if (!feedback) return;
+
+  if (!confirmPass) {
+    feedback.textContent = 'Must match new password';
+    feedback.style.color = 'var(--text-muted)';
+    return;
+  }
+
+  if (newPass === confirmPass) {
+    feedback.textContent = '✓ Passwords match';
+    feedback.style.color = '#10B981';
+    feedback.style.fontWeight = '600';
+  } else {
+    feedback.textContent = '✗ Passwords do not match';
+    feedback.style.color = '#EF4444';
+    feedback.style.fontWeight = '600';
+  }
+};
+
+window.handleChangePassword = function(e) {
+  e.preventDefault();
+  const currentPass = document.getElementById('currentPassword')?.value || '';
+  const newPass = document.getElementById('newPassword')?.value || '';
+  const confirmPass = document.getElementById('confirmPassword')?.value || '';
+  const alertBox = document.getElementById('passwordAlertBox');
+  const submitBtn = document.getElementById('submitChangePasswordBtn');
+
+  function showAlert(message, isSuccess = false) {
+    if (!alertBox) return;
+    alertBox.style.display = 'block';
+    alertBox.style.background = isSuccess ? '#ECFDF5' : '#FEF2F2';
+    alertBox.style.color = isSuccess ? '#065F46' : '#991B1B';
+    alertBox.style.border = isSuccess ? '1px solid #A7F3D0' : '1px solid #FECACA';
+    alertBox.innerHTML = `${isSuccess ? '✅' : '⚠️'} ${message}`;
+  }
+
+  if (newPass !== confirmPass) {
+    showAlert('New password and confirm password do not match.');
+    document.getElementById('confirmPassword')?.focus();
+    return;
+  }
+
+  if (newPass.length < 4) {
+    showAlert('New password must be at least 4 characters long.');
+    document.getElementById('newPassword')?.focus();
+    return;
+  }
+
+  const result = storage.changePassword(currentPass, newPass);
+
+  if (!result.success) {
+    showAlert(result.message, false);
+    return;
+  }
+
+  // Success
+  showAlert(result.message + ' Your new password is now active for account logins.', true);
+  showToast('Password successfully updated! 🔒', '🎉');
+  triggerSuccessConfetti();
+
+  // Reset inputs
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  window.handlePasswordStrengthCheck('');
+  const feedback = document.getElementById('matchFeedback');
+  if (feedback) {
+    feedback.textContent = 'Must match new password';
+    feedback.style.color = 'var(--text-muted)';
+  }
+
+  if (submitBtn) {
+    const origText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '✓ Password Saved!';
+    submitBtn.style.background = '#10B981';
+    setTimeout(() => {
+      submitBtn.innerHTML = origText;
+      submitBtn.style.background = '';
+    }, 2500);
+  }
 };
 
 window.deleteTripPlan = function(tripId) {

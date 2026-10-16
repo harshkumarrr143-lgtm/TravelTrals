@@ -96,6 +96,9 @@ export function renderUserProfile() {
         <button class="content-tab-btn ${profileTab === 'edit' ? 'active' : ''}" onclick="window.switchProfileTab('edit')">
           Account Settings
         </button>
+        <button class="content-tab-btn ${profileTab === 'security' ? 'active' : ''}" onclick="window.switchProfileTab('security')">
+          🔒 Change Password
+        </button>
       </div>
 
       <!-- Tab 1: Planned Trips -->
@@ -278,9 +281,176 @@ export function renderUserProfile() {
               <textarea class="form-input" id="editBio" rows="3">${user.bio || ''}</textarea>
             </div>
 
+            <!-- Password & Security Shortcut Banner inside Edit Tab -->
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: var(--radius-md); padding: 16px; margin: 20px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #FFF7ED; color: var(--accent-orange); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">Password & Account Security</div>
+                  <div style="font-size: 12px; color: var(--text-secondary);">Looking to update your account password? Change it in the dedicated security panel.</div>
+                </div>
+              </div>
+              <button type="button" class="promo-btn" style="background: #FFF7ED; color: var(--accent-orange); border: 1px solid #FED7AA; font-weight: 700; padding: 7px 14px; font-size: 13px;" onclick="window.switchProfileTab('security')">
+                Change Password →
+              </button>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 14px;">
               <button type="submit" class="btn-book-travel">
                 Save Profile Changes
+              </button>
+              <button type="button" class="promo-btn" style="background: #F1F5F9; color: var(--text-secondary);" onclick="window.switchProfileTab('trips')">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      ` : ''}
+
+      <!-- Tab 3: Security & Password Management -->
+      ${profileTab === 'security' ? `
+        <div class="profile-card" style="margin-top: 10px; max-width: 680px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; border-bottom: 1px solid var(--border-card); padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h3 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 10px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #FFF7ED; color: var(--accent-orange);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                Change Account Password
+              </h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">
+                Update your login password to safeguard your travel bookings and profile.
+              </p>
+            </div>
+            <span class="security-status-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Password Protected
+            </span>
+          </div>
+
+          <!-- Real-time Alert box (rendered dynamically on submit) -->
+          <div id="passwordAlertBox" style="display: none; padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; margin-bottom: 20px;"></div>
+
+          <form id="changePasswordForm" onsubmit="window.handleChangePassword(event)">
+            <!-- Current Password -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label class="form-label" for="currentPassword">Current Password</label>
+                <span style="font-size: 11.5px; color: var(--text-muted);">Default demo password: <strong style="color: var(--primary);">user</strong></span>
+              </div>
+              <div class="password-input-wrapper">
+                <input 
+                  type="password" 
+                  class="form-input password-input-field" 
+                  id="currentPassword" 
+                  placeholder="Enter current password (default: user)" 
+                  required 
+                  autocomplete="current-password"
+                />
+                <button 
+                  type="button" 
+                  class="password-toggle-btn" 
+                  onclick="window.togglePasswordVisibility('currentPassword', this)" 
+                  title="Show / Hide password"
+                >
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <!-- New Password -->
+              <div class="form-group">
+                <label class="form-label" for="newPassword">New Password</label>
+                <div class="password-input-wrapper">
+                  <input 
+                    type="password" 
+                    class="form-input password-input-field" 
+                    id="newPassword" 
+                    placeholder="Min. 4 characters" 
+                    required 
+                    autocomplete="new-password"
+                    oninput="window.handlePasswordStrengthCheck(this.value)"
+                  />
+                  <button 
+                    type="button" 
+                    class="password-toggle-btn" 
+                    onclick="window.togglePasswordVisibility('newPassword', this)" 
+                    title="Show / Hide password"
+                  >
+                    👁️
+                  </button>
+                </div>
+                <!-- Password Strength Meter -->
+                <div class="password-strength-container" style="margin-top: 6px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                    <span style="color: var(--text-muted);">Strength:</span>
+                    <span id="strengthLabel" style="font-weight: 700; color: var(--text-muted);">None</span>
+                  </div>
+                  <div style="height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden;">
+                    <div id="strengthBar" style="height: 100%; width: 0%; transition: all 0.3s; background: #94A3B8;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Confirm New Password -->
+              <div class="form-group">
+                <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                <div class="password-input-wrapper">
+                  <input 
+                    type="password" 
+                    class="form-input password-input-field" 
+                    id="confirmPassword" 
+                    placeholder="Re-type new password" 
+                    required 
+                    autocomplete="new-password"
+                    oninput="window.handlePasswordMatchCheck()"
+                  />
+                  <button 
+                    type="button" 
+                    class="password-toggle-btn" 
+                    onclick="window.togglePasswordVisibility('confirmPassword', this)" 
+                    title="Show / Hide password"
+                  >
+                    👁️
+                  </button>
+                </div>
+                <span id="matchFeedback" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 4px;">
+                  Must match new password
+                </span>
+              </div>
+            </div>
+
+            <!-- Security Info Banner -->
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: var(--radius-md); padding: 14px 16px; margin: 18px 0 22px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">🛡️</span>
+                <div>
+                  <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">Security Advisory</div>
+                  <div style="font-size: 11.5px; color: var(--text-secondary);">Passwords are encrypted locally and required for login and booking access.</div>
+                </div>
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">
+                ${storage.getPasswordUpdatedAt() ? `Last updated: ${new Date(storage.getPasswordUpdatedAt()).toLocaleDateString()}` : 'Default credential active'}
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button type="submit" class="btn-book-travel" id="submitChangePasswordBtn" style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M20 6 9 17l-5-5"/>
+                </svg>
+                Update Password
               </button>
               <button type="button" class="promo-btn" style="background: #F1F5F9; color: var(--text-secondary);" onclick="window.switchProfileTab('trips')">
                 Cancel

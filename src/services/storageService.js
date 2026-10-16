@@ -6,7 +6,9 @@ const STORAGE_KEYS = {
   FAVORITES: 'traveltales_favorites',
   BOOKINGS: 'traveltales_bookings',
   TRIPS: 'traveltales_trips',
-  BUDGET: 'traveltales_budget'
+  BUDGET: 'traveltales_budget',
+  PASSWORD: 'traveltales_user_password',
+  PWD_UPDATED: 'traveltales_user_pwd_updated'
 };
 
 // Default Demo User
@@ -128,6 +130,58 @@ class StorageService {
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
     this.notify('user:updated', updated);
     return updated;
+  }
+
+  getPassword() {
+    try {
+      const user = this.getUser();
+      if (user && user.password) return user.password;
+      return localStorage.getItem(STORAGE_KEYS.PASSWORD) || 'user';
+    } catch {
+      return 'user';
+    }
+  }
+
+  getPasswordUpdatedAt() {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.PWD_UPDATED) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  changePassword(currentPassword, newPassword) {
+    const existingPassword = this.getPassword();
+    if (!currentPassword) {
+      return { success: false, message: 'Please enter your current password.' };
+    }
+    if (currentPassword !== existingPassword) {
+      return { success: false, message: 'Incorrect current password. Please try again.' };
+    }
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, message: 'New password must be at least 4 characters long.' };
+    }
+    if (newPassword === existingPassword) {
+      return { success: false, message: 'New password must be different from your current password.' };
+    }
+
+    try {
+      const now = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.PASSWORD, newPassword);
+      localStorage.setItem(STORAGE_KEYS.PWD_UPDATED, now);
+
+      const user = this.getUser();
+      if (user) {
+        user.password = newPassword;
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      }
+
+      this.notify('user:password_changed', { updatedAt: now });
+      return { success: true, message: 'Password updated successfully!', updatedAt: now };
+    } catch (err) {
+      console.error('Failed to change password:', err);
+      return { success: false, message: 'Failed to save new password. Please try again.' };
+    }
   }
 
   loginWithEmail(email, password) {
