@@ -266,11 +266,18 @@ function renderNotificationDropdown() {
         <span style="font-weight: 750; font-size: 14px; color: var(--text-main);">Notifications</span>
         ${unreadCount > 0 ? `<span class="notif-unread-badge">${unreadCount} New</span>` : ''}
       </div>
-      ${unreadCount > 0 ? `
-        <button class="notif-mark-read-btn" onclick="window.markAllNotificationsRead(event)">
-          ✓ Mark all read
-        </button>
-      ` : ''}
+      <div style="display: flex; align-items: center; gap: 8px;">
+        ${unreadCount > 0 ? `
+          <button class="notif-mark-read-btn" onclick="window.markAllNotificationsRead(event)">
+            ✓ Mark all read
+          </button>
+        ` : ''}
+        ${notifications.length > 0 ? `
+          <button class="notif-clear-all-btn" onclick="window.clearAllNotifications(event)" title="Clear all notifications">
+            Clear all
+          </button>
+        ` : ''}
+      </div>
     </div>
 
     <div class="notification-items-list">
@@ -289,14 +296,12 @@ function renderNotificationDropdown() {
             <div class="notif-title-row">
               <span class="notif-item-title">${n.title}</span>
               <div style="display: flex; align-items: center; gap: 6px;">
-                ${!n.read ? `
-                  <button class="notif-item-check-btn" title="Mark as read" onclick="window.markSingleNotificationRead('${n.id}', event)">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </button>
-                  <span class="notif-item-unread-dot" title="Unread notification"></span>
-                ` : ''}
+                ${!n.read ? '<span class="notif-item-unread-dot" title="New notification"></span>' : ''}
+                <button 
+                  class="notif-item-dismiss-btn" 
+                  title="Remove notification" 
+                  onclick="window.dismissNotification('${n.id}', event)"
+                >✕</button>
               </div>
             </div>
             <div class="notif-item-desc">${n.message}</div>
@@ -307,6 +312,21 @@ function renderNotificationDropdown() {
     </div>
   `;
 }
+
+window.dismissNotification = function(id, e) {
+  if (e) e.stopPropagation();
+  notificationService.removeNotification(id);
+  window.updateNotificationBadge();
+  renderNotificationDropdown();
+};
+
+window.clearAllNotifications = function(e) {
+  if (e) e.stopPropagation();
+  notificationService.clearAll();
+  window.updateNotificationBadge();
+  renderNotificationDropdown();
+  showToast('All notifications cleared.', '🗑️');
+};
 
 window.markSingleNotificationRead = function(id, e) {
   if (e) e.stopPropagation();
@@ -324,8 +344,17 @@ window.toggleNotificationDropdown = function(e) {
   if (isOpen) {
     dropdown.style.display = 'none';
   } else {
+    // Render dropdown showing notifications
     renderNotificationDropdown();
     dropdown.style.display = 'flex';
+
+    // Once seen, immediately remove the notification dot on the bell icon!
+    const dot = document.getElementById('topbarNotificationDot');
+    if (dot) {
+      dot.style.display = 'none';
+    }
+    // Mark notifications as read in storage so dot doesn't return until a new activity occurs
+    notificationService.markAllAsRead();
   }
 };
 

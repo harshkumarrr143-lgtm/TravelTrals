@@ -1119,6 +1119,47 @@ a {
   transform: scale(1.1);
 }
 
+.notif-item-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.notif-item-dismiss-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.15);
+}
+
+.notif-clear-all-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.notif-clear-all-btn:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+}
+
 .user-profile-trigger {
   display: flex;
   align-items: center;

@@ -98,6 +98,13 @@ class NotificationService {
     return list;
   }
 
+  removeNotification(id) {
+    const list = this.getNotifications().filter(n => n.id !== id);
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
+    this.notify(list);
+    return list;
+  }
+
   clearAll() {
     localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([]));
     this.notify([]);
