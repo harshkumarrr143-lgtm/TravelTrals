@@ -217,6 +217,13 @@ document.addEventListener('click', (e) => {
       trigger.classList.remove('open');
     }
   }
+
+  const searchWrapper = document.getElementById('globalSearchWrapper');
+  if (searchWrapper && !searchWrapper.contains(e.target)) {
+    if (window.closeSearchDropdown) {
+      window.closeSearchDropdown();
+    }
+  }
 });
 
 // Cascading Menu: switch city on hover / click
@@ -321,26 +328,301 @@ window.toggleSkeletonDemo = function() {
   window.updateMainContent();
 };
 
-// Search Destination Filter
+// ══════════════════════════════════════════════════════════════════
+// AUTOCOMPLETE SEARCH DROPDOWN & FILTERING
+// ══════════════════════════════════════════════════════════════════
+
+let highlightedDropdownIndex = -1;
+
+function highlightSearchMatch(text, query) {
+  if (!query || !text) return text || '';
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  return text.replace(regex, '<mark>$1</mark>');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.closeSearchDropdown = function() {
+  const dd = document.getElementById('searchDropdown');
+  if (dd) {
+    dd.style.display = 'none';
+  }
+  highlightedDropdownIndex = -1;
+};
+
+function renderSearchDropdown(query = '') {
+  const dropdown = document.getElementById('searchDropdown');
+  const clearBtn = document.getElementById('searchClearBtn');
+  if (!dropdown) return;
+
+  const q = (query || '').trim().toLowerCase();
+  highlightedDropdownIndex = -1;
+
+  if (clearBtn) {
+    clearBtn.style.display = q ? 'flex' : 'none';
+  }
+
+  // 1. If Query is empty, show trending/popular recommendations
+  if (!q) {
+    const popularAttractions = travelData.attractions.slice(0, 4);
+    const cities = travelData.cities;
+
+    dropdown.innerHTML = `
+      <div class="search-dropdown-section-header">
+        <span>🔥 Popular Wonders</span>
+        <span style="font-size: 10px; font-weight: normal; text-transform: none; color: var(--text-muted);">Trending in Braj</span>
+      </div>
+      ${popularAttractions.map((att, idx) => `
+        <div class="search-dropdown-item" data-index="${idx}" onclick="window.selectSearchAttraction('${att.id}')">
+          <img src="${att.image}" alt="${att.name}" class="search-dropdown-thumb" />
+          <div class="search-dropdown-info">
+            <div class="search-dropdown-title">${att.name}</div>
+            <div class="search-dropdown-sub">
+              <span>📍 ${att.cityName}</span>
+              <span>⭐ ${att.rating}</span>
+              <span class="search-dropdown-tag">${att.category || 'Wonder'}</span>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+
+      <div class="search-dropdown-section-header" style="margin-top: 6px;">
+        <span>📍 Explore Cities</span>
+      </div>
+      ${cities.map((city, idx) => `
+        <div class="search-dropdown-item" data-index="${popularAttractions.length + idx}" onclick="window.selectSearchCity('${city.id}')">
+          <div class="search-dropdown-city-icon">🏛️</div>
+          <div class="search-dropdown-info">
+            <div class="search-dropdown-title">${city.name}, ${city.state}</div>
+            <div class="search-dropdown-sub">
+              <span>${city.badge}</span>
+              <span>• ${city.attractionsCount} Attractions</span>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+    dropdown.style.display = 'flex';
+    return;
+  }
+
+  // 2. Filter matching attractions and cities
+  const matchedAttractions = travelData.attractions.filter(att => {
+    return (
+      att.name.toLowerCase().includes(q) ||
+      att.cityName.toLowerCase().includes(q) ||
+      (att.subtitle && att.subtitle.toLowerCase().includes(q)) ||
+      (att.category && att.category.toLowerCase().includes(q)) ||
+      (att.cityId && att.cityId.toLowerCase().includes(q))
+    );
+  });
+
+  const matchedCities = travelData.cities.filter(city => {
+    return (
+      city.name.toLowerCase().includes(q) ||
+      city.state.toLowerCase().includes(q) ||
+      (city.badge && city.badge.toLowerCase().includes(q))
+    );
+  });
+
+  if (matchedAttractions.length === 0 && matchedCities.length === 0) {
+    dropdown.innerHTML = `
+      <div class="search-dropdown-empty">
+        <span class="search-dropdown-empty-icon">🧭</span>
+        <div style="font-weight: 700; color: var(--text-main);">No destinations found for "${escapeHtml(query)}"</div>
+        <p style="margin: 6px 0 12px; font-size: 11.5px; color: var(--text-muted);">
+          Try searching for <strong>Taj Mahal</strong>, <strong>Prem Mandir</strong>, <strong>Mathura</strong>, or <strong>Ghats</strong>
+        </p>
+        <button class="promo-btn" style="padding: 6px 14px; font-size: 11.5px; margin: 0 auto; background: var(--primary); color: white;" onclick="window.navigateTo('discover'); window.closeSearchDropdown();">
+          Browse All Wonders
+        </button>
+      </div>
+    `;
+    dropdown.style.display = 'flex';
+    return;
+  }
+
+  let html = '';
+  let itemCounter = 0;
+
+  // Matching Cities
+  if (matchedCities.length > 0) {
+    html += `
+      <div class="search-dropdown-section-header">
+        <span>📍 Matching Cities (${matchedCities.length})</span>
+      </div>
+    `;
+    matchedCities.forEach(city => {
+      html += `
+        <div class="search-dropdown-item" data-index="${itemCounter++}" onclick="window.selectSearchCity('${city.id}')">
+          <div class="search-dropdown-city-icon">📍</div>
+          <div class="search-dropdown-info">
+            <div class="search-dropdown-title">${highlightSearchMatch(city.name, query)}, ${city.state}</div>
+            <div class="search-dropdown-sub">
+              <span>${city.badge}</span>
+              <span>• ${city.attractionsCount} Attractions</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // Matching Attractions
+  if (matchedAttractions.length > 0) {
+    html += `
+      <div class="search-dropdown-section-header" style="${matchedCities.length > 0 ? 'margin-top: 6px;' : ''}">
+        <span>🏛️ Attractions & Wonders (${matchedAttractions.length})</span>
+      </div>
+    `;
+    matchedAttractions.forEach(att => {
+      html += `
+        <div class="search-dropdown-item" data-index="${itemCounter++}" onclick="window.selectSearchAttraction('${att.id}')">
+          <img src="${att.image}" alt="${att.name}" class="search-dropdown-thumb" />
+          <div class="search-dropdown-info">
+            <div class="search-dropdown-title">${highlightSearchMatch(att.name, query)}</div>
+            <div class="search-dropdown-sub">
+              <span>📍 ${highlightSearchMatch(att.cityName, query)}</span>
+              <span>⭐ ${att.rating}</span>
+              <span class="search-dropdown-tag">${att.category || 'Wonder'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // Footer shortcut
+  html += `
+    <div class="search-dropdown-footer" onclick="window.handleSearchClick()">
+      <span>🔍 Show all results on Discover page</span>
+      <span style="font-size: 11px; opacity: 0.7;">↵ Press Enter</span>
+    </div>
+  `;
+
+  dropdown.innerHTML = html;
+  dropdown.style.display = 'flex';
+}
+
+window.handleSearchFocus = function(e) {
+  renderSearchDropdown(e.target.value || '');
+};
+
 window.handleSearchInput = function(e) {
-  const query = e.target.value.toLowerCase().trim();
+  const query = e.target.value;
+  renderSearchDropdown(query);
+
+  // Live filter cards on current view if any exist
+  const qLower = query.toLowerCase().trim();
   const cards = document.querySelectorAll('.travel-card');
   cards.forEach(card => {
     const text = card.textContent.toLowerCase();
-    card.style.display = text.includes(query) ? 'flex' : 'none';
+    card.style.display = (!qLower || text.includes(qLower)) ? 'flex' : 'none';
   });
 };
 
-window.handleSearchClick = function() {
+window.clearSearchInput = function(e) {
+  if (e) e.stopPropagation();
   const input = document.getElementById('globalSearchInput');
-  if (input && input.value.trim()) {
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  renderSearchDropdown('');
+  document.querySelectorAll('.travel-card').forEach(card => {
+    card.style.display = 'flex';
+  });
+};
+
+window.selectSearchAttraction = function(attractionId) {
+  window.closeSearchDropdown();
+  const att = travelData.attractions.find(a => a.id === attractionId);
+  const input = document.getElementById('globalSearchInput');
+  if (input && att) {
+    input.value = att.name;
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'flex';
+  }
+  window.openAttractionModal(attractionId);
+};
+
+window.selectSearchCity = function(cityId) {
+  window.closeSearchDropdown();
+  const city = travelData.cities.find(c => c.id === cityId);
+  const input = document.getElementById('globalSearchInput');
+  if (input && city) {
+    input.value = city.name;
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'flex';
+  }
+  window.selectPresetCity(cityId);
+  window.navigateTo('discover');
+};
+
+function updateDropdownHighlight(items) {
+  items.forEach((item, idx) => {
+    if (idx === highlightedDropdownIndex) {
+      item.classList.add('highlighted');
+      item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } else {
+      item.classList.remove('highlighted');
+    }
+  });
+}
+
+window.handleSearchKeydown = function(e) {
+  const dropdown = document.getElementById('searchDropdown');
+  if (!dropdown || dropdown.style.display === 'none') {
+    if (e.key === 'Enter') {
+      window.handleSearchClick();
+    }
+    return;
+  }
+
+  const items = dropdown.querySelectorAll('.search-dropdown-item');
+  if (items.length === 0) {
+    if (e.key === 'Enter') {
+      window.handleSearchClick();
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    highlightedDropdownIndex = (highlightedDropdownIndex + 1) % items.length;
+    updateDropdownHighlight(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    highlightedDropdownIndex = (highlightedDropdownIndex - 1 + items.length) % items.length;
+    updateDropdownHighlight(items);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (highlightedDropdownIndex >= 0 && items[highlightedDropdownIndex]) {
+      items[highlightedDropdownIndex].click();
+    } else {
+      window.handleSearchClick();
+    }
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    window.closeSearchDropdown();
+  }
+};
+
+window.handleSearchClick = function() {
+  window.closeSearchDropdown();
+  const input = document.getElementById('globalSearchInput');
+  const q = input?.value?.toLowerCase().trim();
+  if (q) {
     window.navigateTo('discover');
     setTimeout(() => {
-      const q = input.value.toLowerCase().trim();
       document.querySelectorAll('.travel-card').forEach(card => {
         card.style.display = card.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
       });
-    }, 100);
+    }, 120);
   }
 };
 

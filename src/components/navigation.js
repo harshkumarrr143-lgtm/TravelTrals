@@ -102,21 +102,40 @@ export function renderTopbar() {
   return `
     <header class="topbar">
       <div class="topbar-left">
-        <!-- Search Destination bar -->
-        <div class="search-container">
-          <span class="search-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-            </svg>
-          </span>
-          <input 
-            type="text" 
-            class="search-input" 
-            id="globalSearchInput" 
-            placeholder="Search Destination, City, or Wonder..." 
-            oninput="window.handleSearchInput(event)"
-          />
-          <button class="search-btn" onclick="window.handleSearchClick()">Search</button>
+        <!-- Search Destination bar with Autocomplete Dropdown -->
+        <div class="search-wrapper" id="globalSearchWrapper">
+          <div class="search-container">
+            <span class="search-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+            </span>
+            <input 
+              type="text" 
+              class="search-input" 
+              id="globalSearchInput" 
+              placeholder="Search Destination, City, or Wonder..." 
+              autocomplete="off"
+              oninput="window.handleSearchInput(event)"
+              onfocus="window.handleSearchFocus(event)"
+              onkeydown="window.handleSearchKeydown(event)"
+            />
+            <button 
+              class="search-clear-btn" 
+              id="searchClearBtn" 
+              onclick="window.clearSearchInput(event)" 
+              style="display: none;" 
+              title="Clear Search"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <button class="search-btn" onclick="window.handleSearchClick()">Search</button>
+          </div>
+
+          <!-- Dynamic Autocomplete Dropdown -->
+          <div class="search-dropdown" id="searchDropdown" style="display: none;"></div>
         </div>
 
         <!-- Cascading Sub-Menu (Click to Open) -->
