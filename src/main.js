@@ -110,12 +110,17 @@ window.toggleSidebarCollapse = function() {
   }
 };
 
-window.updateMainContent = function() {
+window.updateMainContent = function(preserveScroll = false) {
   const container = document.getElementById('mainContentScroll');
   if (container) {
+    const scrollPos = container.scrollTop;
     container.innerHTML = renderCurrentView();
-    container.scrollTo({ top: 0, behavior: 'smooth' });
-    animatePageEntrance();
+    if (preserveScroll) {
+      container.scrollTop = scrollPos;
+    } else {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+      animatePageEntrance();
+    }
   } else {
     renderApp();
   }
@@ -2004,6 +2009,64 @@ window.setPlannerStartDate = function(val) {
 window.setPlannerCategoryFilter = function(cat) {
   plannerState.categoryFilter = cat;
   window.updateMainContent();
+};
+
+window.setPlannerCityFilter = function(cityId) {
+  plannerState.cityFilter = cityId;
+  plannerState.citySearchQuery = cityId === 'all' ? '' : (cityId.charAt(0).toUpperCase() + cityId.slice(1));
+
+  // Auto-align recommended starting hub to selected city
+  if (cityId === 'agra') {
+    plannerState.startingPoint = 'taj-ganj';
+  } else if (cityId === 'vrindavan') {
+    plannerState.startingPoint = 'vrindavan-center';
+  } else if (cityId === 'mathura') {
+    plannerState.startingPoint = 'mathura-junction';
+  }
+
+  window.updateMainContent();
+
+  const cityName = cityId === 'all' ? 'All Cities' : (cityId.charAt(0).toUpperCase() + cityId.slice(1));
+  showToast(`Showing attractions in ${cityName} 📍`, '🏙️');
+};
+
+window.handlePlannerCitySearch = function(val) {
+  plannerState.citySearchQuery = val;
+  const q = val.trim().toLowerCase();
+
+  if (!q || q === 'all' || q === 'all cities') {
+    plannerState.cityFilter = 'all';
+  } else if ('agra'.includes(q) || q.includes('agra')) {
+    plannerState.cityFilter = 'agra';
+    plannerState.startingPoint = 'taj-ganj';
+  } else if ('mathura'.includes(q) || q.includes('mathura')) {
+    plannerState.cityFilter = 'mathura';
+    plannerState.startingPoint = 'mathura-junction';
+  } else if ('vrindavan'.includes(q) || q.includes('vrindavan')) {
+    plannerState.cityFilter = 'vrindavan';
+    plannerState.startingPoint = 'vrindavan-center';
+  } else {
+    plannerState.cityFilter = 'custom';
+  }
+
+  window.updateMainContent(true);
+
+  const searchInput = document.getElementById('plannerCitySearchInput');
+  if (searchInput) {
+    searchInput.focus();
+    const len = searchInput.value.length;
+    searchInput.setSelectionRange(len, len);
+  }
+};
+
+window.clearPlannerCitySearch = function() {
+  plannerState.citySearchQuery = '';
+  plannerState.cityFilter = 'all';
+  window.updateMainContent();
+  const searchInput = document.getElementById('plannerCitySearchInput');
+  if (searchInput) {
+    searchInput.focus();
+  }
 };
 
 window.togglePlannerAttraction = function(attId) {

@@ -9,6 +9,8 @@ export const plannerState = {
   children: 1,
   days: 2,
   startDate: getDefaultStartDate(),
+  cityFilter: 'all', // 'all', 'agra', 'mathura', 'vrindavan'
+  citySearchQuery: '',
   categoryFilter: 'all',
   selectedAttractionIds: ['taj-mahal', 'prem-mandir', 'agra-fort', 'mehtab-bagh', 'krishna-janmabhoomi'],
   startingPoint: 'taj-ganj',
@@ -251,7 +253,57 @@ function renderStep1TripInfo() {
         </div>
       </div>
 
-      <!-- Card 2: How many days? -->
+      <!-- Card 2: Which city are you visiting? -->
+      <div class="gocity-card-box gocity-city-card">
+        <h2 class="gocity-box-title">Which city are you visiting?</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+          Select your destination city to automatically focus your trip plan on that city's attractions.
+        </p>
+        <div class="gocity-city-selection-grid">
+          <div 
+            class="gocity-city-option ${(!plannerState.cityFilter || plannerState.cityFilter === 'all') ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('all')"
+          >
+            <span class="city-opt-icon">🌐</span>
+            <div class="city-opt-info">
+              <div class="city-opt-title">All Cities / Combined Circuit</div>
+              <div class="city-opt-desc">Agra, Mathura & Vrindavan combined</div>
+            </div>
+          </div>
+          <div 
+            class="gocity-city-option ${plannerState.cityFilter === 'agra' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('agra')"
+          >
+            <span class="city-opt-icon">🏰</span>
+            <div class="city-opt-info">
+              <div class="city-opt-title">Agra</div>
+              <div class="city-opt-desc">Taj Mahal, Agra Fort, Mehtab Bagh</div>
+            </div>
+          </div>
+          <div 
+            class="gocity-city-option ${plannerState.cityFilter === 'vrindavan' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('vrindavan')"
+          >
+            <span class="city-opt-icon">🛕</span>
+            <div class="city-opt-info">
+              <div class="city-opt-title">Vrindavan</div>
+              <div class="city-opt-desc">Prem Mandir, Bankey Bihari, ISKCON</div>
+            </div>
+          </div>
+          <div 
+            class="gocity-city-option ${plannerState.cityFilter === 'mathura' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('mathura')"
+          >
+            <span class="city-opt-icon">⛵</span>
+            <div class="city-opt-info">
+              <div class="city-opt-title">Mathura</div>
+              <div class="city-opt-desc">Krishna Janmasthan, Vishram Ghat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: How many days? -->
       <div class="gocity-card-box gocity-days-card">
         <h2 class="gocity-box-title">How many days?</h2>
 
@@ -322,22 +374,53 @@ function renderStep2Attractions() {
     }
   });
 
+  // Determine active city filter (from direct selection or from search query)
+  const query = (plannerState.citySearchQuery || '').trim().toLowerCase();
+  let activeCityId = plannerState.cityFilter || 'all';
+
+  if (query) {
+    if (query === 'all' || query === 'all cities') {
+      activeCityId = 'all';
+    } else if ('agra'.includes(query) || query.includes('agra')) {
+      activeCityId = 'agra';
+    } else if ('mathura'.includes(query) || query.includes('mathura')) {
+      activeCityId = 'mathura';
+    } else if ('vrindavan'.includes(query) || query.includes('vrindavan')) {
+      activeCityId = 'vrindavan';
+    }
+  }
+
   const categories = [
-    { id: 'all', label: 'All Destinations' },
+    { id: 'all', label: 'All Categories' },
     { id: 'Heritage', label: 'Historic & Cultural' },
     { id: 'Spiritual', label: 'Sacred & Spiritual' },
     { id: 'Ghats', label: 'Riverfront & Ghats' },
     { id: 'Architecture', label: 'City Views & Gardens' }
   ];
 
+  // Filter attractions: ONLY that city's attractions are shown!
   const filteredAttractions = travelData.attractions.filter(att => {
+    // 1. City Filter (when user searches/selects a city, ONLY that city's attractions show!)
+    if (activeCityId && activeCityId !== 'all') {
+      if (att.cityId !== activeCityId && !att.cityName.toLowerCase().includes(activeCityId)) {
+        return false;
+      }
+    } else if (query) {
+      const matchCity = att.cityName.toLowerCase().includes(query) || att.cityId.toLowerCase().includes(query);
+      const matchName = att.name.toLowerCase().includes(query);
+      if (!matchCity && !matchName) return false;
+    }
+
+    // 2. Category Filter
     if (plannerState.categoryFilter === 'all') return true;
-    if (plannerState.categoryFilter === 'Heritage') return att.category === 'Heritage' || att.cityId === 'agra';
-    if (plannerState.categoryFilter === 'Spiritual') return att.category === 'Spiritual' || att.cityId === 'vrindavan';
-    if (plannerState.categoryFilter === 'Ghats') return att.category === 'Ghats' || att.cityId === 'mathura';
+    if (plannerState.categoryFilter === 'Heritage') return att.category === 'Heritage';
+    if (plannerState.categoryFilter === 'Spiritual') return att.category === 'Spiritual';
+    if (plannerState.categoryFilter === 'Ghats') return att.category === 'Ghats';
     if (plannerState.categoryFilter === 'Architecture') return att.category === 'Architecture' || att.badges?.some(b => /garden|view/i.test(b));
     return true;
   });
+
+  const activeCityName = activeCityId === 'agra' ? 'Agra' : activeCityId === 'mathura' ? 'Mathura' : activeCityId === 'vrindavan' ? 'Vrindavan' : 'All Cities';
 
   return `
     <div class="gocity-step2-container">
@@ -349,6 +432,73 @@ function renderStep2Attractions() {
           </svg>
           <span>Add at least 3 attractions (max 8)</span>
         </div>
+      </div>
+
+      <!-- City Search & Filter Bar -->
+      <div class="planner-city-search-section">
+        <div class="planner-city-search-box-row">
+          <div class="planner-city-search-input-wrap">
+            <svg class="planner-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input 
+              type="text" 
+              id="plannerCitySearchInput" 
+              class="planner-city-search-input" 
+              placeholder="Search destination city (e.g. Agra, Mathura, Vrindavan) to plan trip..." 
+              value="${plannerState.citySearchQuery || ''}" 
+              oninput="window.handlePlannerCitySearch(this.value)" 
+              autocomplete="off"
+            />
+            ${plannerState.citySearchQuery ? `
+              <button type="button" class="planner-search-clear-btn" onclick="window.clearPlannerCitySearch()" title="Clear city search">
+                ✕
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Quick City Selector Pills -->
+        <div class="planner-city-chips-bar">
+          <span class="planner-chips-label">Destination City:</span>
+          <button 
+            type="button" 
+            class="planner-city-chip ${activeCityId === 'all' && !query ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('all')"
+          >
+            🌐 All Cities (11)
+          </button>
+          <button 
+            type="button" 
+            class="planner-city-chip ${activeCityId === 'agra' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('agra')"
+          >
+            🏰 Agra (4)
+          </button>
+          <button 
+            type="button" 
+            class="planner-city-chip ${activeCityId === 'vrindavan' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('vrindavan')"
+          >
+            🛕 Vrindavan (4)
+          </button>
+          <button 
+            type="button" 
+            class="planner-city-chip ${activeCityId === 'mathura' ? 'active' : ''}" 
+            onclick="window.setPlannerCityFilter('mathura')"
+          >
+            ⛵ Mathura (3)
+          </button>
+        </div>
+
+        ${activeCityId !== 'all' ? `
+          <div class="planner-active-city-indicator">
+            <span>📍 Showing travel attractions in <strong>${activeCityName}</strong> (${filteredAttractions.length} destinations available for travel plan)</span>
+            <button type="button" class="planner-clear-filter-link" onclick="window.setPlannerCityFilter('all')">
+              Show All Cities
+            </button>
+          </div>
+        ` : ''}
       </div>
 
       <!-- Filter Tabs -->
@@ -368,7 +518,18 @@ function renderStep2Attractions() {
       <div class="gocity-two-col-layout">
         <!-- Left: Attractions Grid -->
         <div class="gocity-attractions-grid">
-          ${filteredAttractions.map(att => {
+          ${filteredAttractions.length === 0 ? `
+            <div class="planner-empty-attractions">
+              <div style="font-size: 38px; margin-bottom: 10px;">🔍</div>
+              <h3 style="font-size: 16px; font-weight: 750; color: var(--text-main);">No attractions found for "${plannerState.citySearchQuery || activeCityName}"</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 6px; max-width: 380px;">
+                Try searching for <strong>Agra</strong>, <strong>Mathura</strong>, or <strong>Vrindavan</strong> to plan your travel stops.
+              </p>
+              <button type="button" class="gocity-filter-chip active" style="margin-top: 14px;" onclick="window.setPlannerCityFilter('all')">
+                View All Destinations
+              </button>
+            </div>
+          ` : filteredAttractions.map(att => {
             const isSelected = plannerState.selectedAttractionIds.includes(att.id);
             return `
               <div class="gocity-attraction-card ${isSelected ? 'selected' : ''}" onclick="window.togglePlannerAttraction('${att.id}')">
@@ -395,7 +556,7 @@ function renderStep2Attractions() {
 
                 <div class="gocity-card-body">
                   <h3 class="gocity-card-title">${att.name}</h3>
-                  <div class="gocity-card-cat">${att.category || att.cityName}</div>
+                  <div class="gocity-card-cat">📍 ${att.cityName} • ${att.category || 'Sightseeing'}</div>
 
                   <div class="gocity-card-meta-row">
                     <div class="gocity-stars-wrap">
