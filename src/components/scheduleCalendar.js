@@ -1,6 +1,5 @@
 // Schedule & Calendar Component (Matching Right Panel in Reference Mockup)
 import { storage } from '../services/storageService.js';
-import { isFirebaseConnected } from '../services/firebaseConfig.js';
 
 // Compute today's date dynamically
 const _today = new Date();
@@ -47,7 +46,6 @@ function getTodayCalendarData() {
 export function renderScheduleCalendar() {
   const trips = storage.getTrips();
   const calData = getTodayCalendarData();
-  const hasCloudDb = isFirebaseConnected();
 
   // Use today as the default active day if not changed
   if (activeCalendarDay === _today.getDate()) {
@@ -90,13 +88,7 @@ export function renderScheduleCalendar() {
       <!-- My Schedule Card (Connected with Firestore DB & GoCity Planner) -->
       <div class="schedule-card" id="myScheduleCardContainer">
         <div class="schedule-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="schedule-title">My Schedule</div>
-            <span class="schedule-cloud-sync-tag" title="Connected to Cloud Database">
-              <span class="status-dot-pulse"></span>
-              <span>${hasCloudDb ? 'Cloud DB Active' : 'DB Ready'}</span>
-            </span>
-          </div>
+          <div class="schedule-title">My Schedule</div>
           <div style="display: flex; align-items: center; gap: 6px;">
             ${trips.length > 0 ? `
               <button 
