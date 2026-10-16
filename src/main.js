@@ -37,6 +37,7 @@ import {
   getUserTripsFromFirestore,
   syncUserDataWithFirestore
 } from './services/firestoreService.js';
+import { downloadItineraryPdf } from './services/pdfService.js';
 
 // Application State
 const appState = {
@@ -1535,7 +1536,14 @@ window.savePlannedTripToSchedule = async function() {
 
   showToast(syncMsg, '✨');
 
-  // 4. Navigate to dashboard to showcase the updated "My Schedule" card
+  // 4. Also automatically generate & download the itinerary PDF with photos
+  try {
+    downloadItineraryPdf(plannerState);
+  } catch (pdfErr) {
+    console.warn('PDF download note:', pdfErr);
+  }
+
+  // 5. Navigate to dashboard to showcase the updated "My Schedule" card
   setTimeout(() => {
     appState.currentTab = 'dashboard';
     renderApp();
@@ -1548,6 +1556,39 @@ window.savePlannedTripToSchedule = async function() {
       setTimeout(() => scheduleCard.classList.remove('highlight-pulse'), 2500);
     }
   }, 900);
+};
+
+// Dedicated Itinerary PDF Download Handler
+window.downloadTripItineraryPdf = async function() {
+  const topBtn = document.getElementById('topDownloadPdfBtn');
+  const originalHtml = topBtn ? topBtn.innerHTML : '';
+  if (topBtn) {
+    topBtn.disabled = true;
+    topBtn.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span>Creating PDF...</span>
+    `;
+  }
+
+  showToast('Compiling official itinerary PDF with photos & schedules... 📄', '⏳');
+
+  try {
+    const res = await downloadItineraryPdf(plannerState);
+    triggerSuccessConfetti();
+    showToast(`✅ ${res.fileName} downloaded successfully!`, '🎉');
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    showToast('Failed to generate PDF. Please try again.', '⚠️');
+  } finally {
+    if (topBtn) {
+      topBtn.disabled = false;
+      topBtn.innerHTML = originalHtml;
+    }
+  }
 };
 
 // View Full Trip Itinerary
