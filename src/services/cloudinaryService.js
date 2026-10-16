@@ -104,3 +104,18 @@ export async function uploadImageToCloudinary(file, onProgress = null) {
     xhr.send(formData);
   });
 }
+
+/**
+ * Automatically applies face-detection and square cropping to Cloudinary image URLs
+ * @param {string} url - Cloudinary image URL
+ * @returns {string} - Optimized URL with c_fill,g_face,w_400,h_400
+ */
+export function formatCloudinaryAvatarUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('cloudinary.com')) return url;
+  if (url.includes('/image/upload/') && !url.includes('c_fill') && !url.includes('c_thumb')) {
+    return url.replace('/image/upload/', '/image/upload/c_fill,g_face,w_400,h_400,q_auto/');
+  }
+  return url;
+}
+

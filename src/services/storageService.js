@@ -1,5 +1,5 @@
-// Storage Service with Firebase-ready schema, Deterministic User Persistence, and LocalStorage cache
 import { travelData } from '../data/travelData.js';
+import { formatCloudinaryAvatarUrl } from './cloudinaryService.js';
 
 export const STORAGE_KEYS = {
   CURRENT_USER: 'traveltales_user',
@@ -143,9 +143,13 @@ class StorageService {
       const registryUser = this.getUserFromRegistry(user.id);
       if (registryUser) {
         // Master source of truth: preserve photoUrl if either copy has it
-        const photo = user.photoUrl || registryUser.photoUrl || '';
+        const rawPhoto = user.photoUrl || registryUser.photoUrl || '';
+        const photo = formatCloudinaryAvatarUrl(rawPhoto);
         const merged = { ...registryUser, ...user, photoUrl: photo, isLoggedIn: true };
         return merged;
+      }
+      if (user.photoUrl) {
+        user.photoUrl = formatCloudinaryAvatarUrl(user.photoUrl);
       }
       return user;
     } catch {
@@ -175,7 +179,7 @@ class StorageService {
     const updated = { 
       ...current, 
       ...updates, 
-      photoUrl: finalPhoto,
+      photoUrl: formatCloudinaryAvatarUrl(finalPhoto),
       isLoggedIn: true,
       updatedAt: new Date().toISOString()
     };

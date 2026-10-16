@@ -187,7 +187,7 @@ export function renderTopbar() {
               alt="${user.name}" 
               class="user-avatar-img" 
               id="topbarUserAvatarImg" 
-              style="${user.photoUrl ? 'width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block;' : 'display: none; width: 36px; height: 36px; border-radius: 50%; object-fit: cover;'}" 
+              style="${user.photoUrl ? 'width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: center 20%; display: block;' : 'display: none; width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: center 20%;'}" 
             />
             <div 
               class="user-avatar-initials" 

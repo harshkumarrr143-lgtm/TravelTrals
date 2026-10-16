@@ -59,7 +59,7 @@ export function renderUserProfile() {
             alt="${user.name}" 
             class="profile-main-avatar" 
             id="profileHeaderAvatar" 
-            style="${user.photoUrl ? 'display: block;' : 'display: none;'}" 
+            style="${user.photoUrl ? 'display: block; object-position: center 20%;' : 'display: none; object-position: center 20%;'}" 
           />
           <div 
             class="profile-main-avatar-initials" 
@@ -207,7 +207,7 @@ export function renderUserProfile() {
                     src="${user.photoUrl || ''}" 
                     alt="Avatar Preview" 
                     class="avatar-preview-img" 
-                    style="${user.photoUrl ? 'width: 72px; height: 72px; object-fit: cover; border-radius: 50%; display: block;' : 'display: none; width: 72px; height: 72px; object-fit: cover; border-radius: 50%;'}" 
+                    style="${user.photoUrl ? 'width: 72px; height: 72px; object-fit: cover; object-position: center 20%; border-radius: 50%; display: block;' : 'display: none; width: 72px; height: 72px; object-fit: cover; object-position: center 20%; border-radius: 50%;'}" 
                   />
                   <div 
                     id="avatarFallbackInitials" 

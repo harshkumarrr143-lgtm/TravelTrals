@@ -27,7 +27,8 @@ import {
   uploadImageToCloudinary, 
   isCloudinaryConfigured, 
   getCloudinaryConfig, 
-  saveCloudinaryConfig 
+  saveCloudinaryConfig,
+  formatCloudinaryAvatarUrl
 } from './services/cloudinaryService.js';
 import { 
   saveUserProfileToFirestore, 
@@ -930,26 +931,26 @@ function compressImageForAvatar(file) {
       img.onerror = () => resolve(e.target.result);
       img.onload = () => {
         try {
+          const targetDim = 280;
           const canvas = document.createElement('canvas');
-          const maxDim = 240;
-          let w = img.width;
-          let h = img.height;
-          if (w > h) {
-            if (w > maxDim) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
-            }
-          } else {
-            if (h > maxDim) {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
-            }
-          }
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = targetDim;
+          canvas.height = targetDim;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+          // Smart square crop: prioritize the face/head area (upper center)
+          let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+          if (img.width > img.height) {
+            // Landscape: take center square
+            sWidth = img.height;
+            sx = (img.width - img.height) / 2;
+          } else if (img.height > img.width) {
+            // Portrait: bias towards upper-center (head/face area)
+            sHeight = img.width;
+            sy = Math.max(0, Math.min((img.height - img.width) * 0.15, (img.height - img.width) * 0.3));
+          }
+
+          ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetDim, targetDim);
+          const compressed = canvas.toDataURL('image/jpeg', 0.88);
           resolve(compressed);
         } catch (err) {
           resolve(e.target.result);
@@ -962,6 +963,7 @@ function compressImageForAvatar(file) {
 }
 
 function updateAvatarElementsOnPage(url) {
+  const formattedUrl = formatCloudinaryAvatarUrl(url);
   const previewImg = document.getElementById('avatarPreviewImg');
   const fallbackInitials = document.getElementById('avatarFallbackInitials');
   const photoUrlInput = document.getElementById('editPhotoUrl');
@@ -972,10 +974,11 @@ function updateAvatarElementsOnPage(url) {
   const headerImg = document.getElementById('profileHeaderAvatar');
   const headerInitials = document.getElementById('profileHeaderAvatarInitials');
 
-  if (url) {
+  if (formattedUrl) {
     if (previewImg) {
-      previewImg.src = url;
+      previewImg.src = formattedUrl;
       previewImg.style.display = 'block';
+      previewImg.style.objectPosition = 'center 20%';
     }
     if (fallbackInitials) {
       fallbackInitials.style.display = 'none';
@@ -984,22 +987,25 @@ function updateAvatarElementsOnPage(url) {
       photoUrlInput.value = url;
     }
     if (topbarImg) {
-      topbarImg.src = url;
+      topbarImg.src = formattedUrl;
       topbarImg.style.display = 'block';
+      topbarImg.style.objectPosition = 'center 20%';
     }
     if (topbarInitials) {
       topbarInitials.style.display = 'none';
     }
     if (headerImg) {
-      headerImg.src = url;
+      headerImg.src = formattedUrl;
       headerImg.style.display = 'block';
+      headerImg.style.objectPosition = 'center 20%';
     }
     if (headerInitials) {
       headerInitials.style.display = 'none';
     }
     document.querySelectorAll('.user-avatar-img').forEach(img => {
-      img.src = url;
+      img.src = formattedUrl;
       img.style.display = 'block';
+      img.style.objectPosition = 'center 20%';
     });
     document.querySelectorAll('.user-avatar-initials, .profile-main-avatar-initials').forEach(el => {
       el.style.display = 'none';
@@ -1106,7 +1112,7 @@ window.handleLocalPhotoSelect = async function(event) {
     });
 
     // Cloudinary upload successful!
-    const cloudinaryUrl = uploadResult.url;
+    const cloudinaryUrl = formatCloudinaryAvatarUrl(uploadResult.url);
     console.log('✅ Cloudinary Upload Succeeded! Photo CDN URL:', cloudinaryUrl);
 
     // Persist Cloudinary URL in user profile & database
